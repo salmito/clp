@@ -14,7 +14,7 @@
 
 #if LUA_VERSION_NUM > 501
    #define lua_objlen lua_rawlen
-   #define LSTAGE_ENV_MARKER "__lstage-env-5.2-mark" LSTAGE_VERSION
+   #define LSTAGE_ENV_MARKER "__lstage-env-5.2-mark"
 #endif
 
 typedef struct mar_Buffer {

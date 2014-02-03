@@ -264,7 +264,13 @@ static int lstage_destroystage(lua_State * L) {
 	stage_t s=*s_ptr;
 	qt_hash_remove(H,s);
 	free(s->env);
+	instance_t i=NULL;
+	while(lstage_lfqueue_try_pop(s->instances,(void **)&i)) 
+		lstage_destroyinstance(i);
 	lstage_lfqueue_free(s->instances);
+	event_t e;
+	while(lstage_lfqueue_try_pop(s->event_queue,(void **)&e)) 
+		lstage_destroyevent(e);
 	lstage_lfqueue_free(s->event_queue);
 	*s_ptr=0;
 	return 0;

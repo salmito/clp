@@ -98,10 +98,14 @@ static int lstage_cpus(lua_State *L) {
    return 0;
 }
 
-static void lstage_require(lua_State *L, const char *lib) {
+static void lstage_require(lua_State *L, const char *lib, lua_CFunction func) {
+#if LUA_VERSION_NUM < 502 
 	lua_getglobal(L,"require");
 	lua_pushstring(L, lib);
 	lua_call(L,1,1);
+#else
+ 	luaL_requiref(L, lib, func, 0); 
+#endif
 }
 
 LSTAGE_EXPORTAPI int luaopen_lstage_event(lua_State *L);
@@ -116,15 +120,15 @@ LSTAGE_EXPORTAPI int luaopen_lstage(lua_State *L) {
 	{NULL,NULL}
 	};
 	lua_newtable(L);
-	lstage_require(L,"lstage.event");
+	lstage_require(L,"lstage.event",luaopen_lstage_event);
 	lua_getfield(L,-1,"encode");
 	lua_setfield(L,-3,"encode");
 	lua_getfield(L,-1,"decode");
 	lua_setfield(L,-3,"decode");
 	lua_pop(L,1);
-	lstage_require(L,"lstage.scheduler");
+	lstage_require(L,"lstage.scheduler",luaopen_lstage_scheduler);
 	lua_setfield(L,-2,"scheduler");
-	lstage_require(L,"lstage.stage");
+	lstage_require(L,"lstage.stage",luaopen_lstage_stage);
 	lua_getfield(L,-1,"new");
 	lua_setfield(L,-3,"stage");
 	lua_pop(L,1);
