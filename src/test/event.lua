@@ -21,9 +21,12 @@ sleep:push("event1")
 local function handler(str,thread)
 	local io=require'io'
 	while true do
-		event.waitfd(1,0)
-		local a=io.stdin:read('*l')
-		print("Typed",a)
+		if event.waitfd(1,event.READ,1) then
+		   local a=io.stdin:read('*l')
+		   print("Typed",a)
+		else
+		   print("Timed out :(");
+      end
 	end	
 end
 

@@ -78,7 +78,18 @@ static void thread_resume_instance(instance_t i) {
 			i->flags=READY;
 			lua_pushliteral(L,STAGE_HANDLER_KEY);
 			lua_gettable(L,LUA_REGISTRYINDEX);
-			if(lua_pcall(i->L,0,0,0)) {
+			lua_pushboolean(L,1);
+			if(lua_pcall(i->L,1,0,0)) {
+		      const char * err=lua_tostring(L,-1);
+		      fprintf(stderr,"Error resuming instance: %s\n",err);
+		   }
+		   break;
+		case TIMEOUT_IO:
+			i->flags=READY;
+			lua_pushliteral(L,STAGE_HANDLER_KEY);
+			lua_gettable(L,LUA_REGISTRYINDEX);
+			lua_pushboolean(L,0);
+			if(lua_pcall(i->L,1,0,0)) {
 		      const char * err=lua_tostring(L,-1);
 		      fprintf(stderr,"Error resuming instance: %s\n",err);
 		   }

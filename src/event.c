@@ -30,6 +30,8 @@ static void dummy_event(evutil_socket_t fd, short events, void *arg) {}
 
 static void io_ready(evutil_socket_t fd, short event, void *arg) {
 	instance_t i=(instance_t)arg;
+	if(event&EV_TIMEOUT) 
+      i->flags=TIMEOUT_IO;
 	lstage_pushinstance(i);
 }
 
@@ -44,13 +46,23 @@ static int event_wait_io(lua_State * L) {
    else if(mode==1)
          m = EV_WRITE; //write
    else luaL_error(L,"Invalid io operation type (0=read and 1=write)");
+   double time=0.0l;  
+   if(lua_type(L,3)==LUA_TNUMBER) {
+      time=lua_tonumber(L,3);
+      if(time<=0.0l) luaL_error(L,"Invalid timeout value");
+   }
   	lua_pushliteral(L,LSTAGE_INSTANCE_KEY);
 	lua_gettable(L, LUA_REGISTRYINDEX);
 	if(lua_type(L,-1)!=LUA_TLIGHTUSERDATA) luaL_error(L,"Cannot wait outside of a stage");
 	instance_t i=lua_touserdata(L,-1);
 	lua_pop(L,1);
 	i->flags=WAITING_IO;
-   event_base_once(loop, fd, m, io_ready, i, NULL);
+   if(time>0.0) {
+      struct timeval to={time,(((double)time-((int)time))*1000000.0L)};
+      event_base_once(loop, fd, m, io_ready, i, &to);
+   } else {
+      event_base_once(loop, fd, m, io_ready, i, NULL);
+   }
    return lua_yield(L,0);
 }
 
@@ -95,12 +107,17 @@ LSTAGE_EXPORTAPI	int luaopen_lstage_event(lua_State *L) {
 		evthread_use_pthreads();
 		THREAD_CREATE(event_thread, &event_main, NULL, 0);
 	}
-	
 	lua_newtable(L);
 	lua_newtable(L);
 	luaL_loadstring(L,"return function() return require'lstage.event' end");
 	lua_setfield (L, -2,"__persist");
 	lua_setmetatable(L,-2);
+	lua_pushliteral(L,"READ");
+	lua_pushnumber(L,0);
+	lua_settable(L,-3);
+   lua_pushliteral(L,"WRITE");
+	lua_pushnumber(L,1);
+	lua_settable(L,-3);
 #if LUA_VERSION_NUM < 502
 	luaL_register(L, NULL, LuaExportFunctions);
 #else
