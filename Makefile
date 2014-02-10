@@ -1,4 +1,4 @@
-LUA_VER=5.2
+LUA_VER=5.1
 
 LUA_LIBDIR=/usr/local/lib/lua/$(LUA_VER)
 
@@ -8,7 +8,7 @@ _SO=.so
 
 BIN=$(MODULE)$(_SO)
 all:
-	cd $(SRC_DIR) && make all
+	cd $(SRC_DIR) && make LUA_VER=$(LUA_VER) all 
 
 install: all
 	mkdir -p $(LUA_LIBDIR)

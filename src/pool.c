@@ -24,6 +24,13 @@ static int pool_ptr(lua_State * L) {
 	return 1;
 }
 
+static int pool_addthread(lua_State * L) {
+	pool_t s=lstage_topool(L, 1);
+	thread_t * th=lstage_newthread(L,s));
+	qt_hash_put(s->H,th,th);
+	return 1;
+}
+
 static void get_metatable(lua_State * L) {
 	luaL_getmetatable(L,LSTAGE_POOL_METATABLE);
    if(lua_isnil(L,-1)) {
@@ -37,6 +44,8 @@ static void get_metatable(lua_State * L) {
 		lua_setfield (L, -2,"__wrap");
 		lua_pushcfunction(L,pool_ptr);
   		lua_setfield(L,-2,"ptr");
+  		lua_pushcfunction(L,pool_addthread);
+  		lua_setfield(L,-2,"add");
 //		lua_pushcfunction (L, lstage_destroystage); //TODO implement refcount?
 //		lua_setfield (L, -2,"__gc");
   	}
@@ -52,6 +61,13 @@ static int pool_new(lua_State *L) {
 	pool_build(L,p);
 	return 1;
 }
+
+static int pool_size(lua_State * L) {
+	pool_t s = lstage_topool(L, 1);
+	lua_pushinteger(L,qt_hash_count(s->H));
+	return 1;
+}
+
 
 static int pool_get(lua_State * L) {
 	pool_t p=lua_touserdata(L,1);

@@ -16,14 +16,14 @@ static int thread_tostring (lua_State *L) {
   return 1;
 }
 
-static THREAD_T * thread_get(lua_State *L, int i) {
-	THREAD_T ** t = luaL_checkudata (L, i, LSTAGE_THREAD_METATABLE);
+THREAD_T * lstage_tothread(lua_State *L, int i) {
+	thread_t ** t = luaL_checkudata (L, i, LSTAGE_THREAD_METATABLE);
 	luaL_argcheck (L, *t != NULL, i, "not a Thread");
-	return *t;
+	return (*t)->th;
 }
 
 static int thread_join (lua_State *L) {
-	THREAD_T * t=thread_get(L,1);
+	THREAD_T * t=lstage_tothread(L,1);
 	int timeout=lua_tointeger(L,2);
 	if(timeout>0) {
 		struct timespec to;
@@ -37,13 +37,13 @@ static int thread_join (lua_State *L) {
 }
 
 static int thread_rawkill (lua_State *L) {
-   THREAD_T * t=thread_get(L,1);
+   THREAD_T * t=lstage_tothread(L,1);
    THREAD_KILL(t);
    return 0;
 }
 
 static int thread_ptr (lua_State *L) {
-	THREAD_T * t=thread_get(L,1);
+	THREAD_T * t=lstage_tothread(L,1);
 	lua_pushlightuserdata(L,t);
 	return 1;
 }
@@ -141,23 +141,24 @@ static THREAD_RETURN_T THREAD_CALLCONV thread_mainloop(void *t_val) {
    return t_val;
 }
 
-static int thread_new (lua_State *L) {
-	THREAD_T ** thread=lua_newuserdata(L,sizeof(THREAD_T*));
-	THREAD_T *t=malloc(sizeof(THREAD_T));
+thread_t * lstage_newthread(lua_State *L,pool_t pool) {
+	thread_t * thread=lua_newuserdata(L,sizeof(thread_t));
+	thread_t t=malloc(sizeof(struct thread_s));
+	t->pool=pool;
 	*thread=t;
    get_metatable(L);
    lua_setmetatable(L,-2);
    THREAD_CREATE(*thread, thread_mainloop, *thread, 0 );
-   return 1;
+   return thread;
 }
 
 static int thread_from_ptr (lua_State *L) {
-	THREAD_T * ptr=lua_touserdata(L,1);
-	THREAD_T ** thread=lua_newuserdata(L,sizeof(THREAD_T*));
+	thread_t * ptr=lua_touserdata(L,1);
+	thread_t ** thread=lua_newuserdata(L,sizeof(thread_t));
 	*thread=ptr;
    get_metatable(L);
    lua_setmetatable(L,-2);   
-   THREAD_CREATE(*thread, thread_mainloop, *thread, 0 );
+//   THREAD_CREATE(*thread, thread_mainloop, *thread, 0 );
    return 1;
 }
 
@@ -173,7 +174,7 @@ inline void lstage_pushinstance(instance_t i) {
 
 LSTAGE_EXPORTAPI	int luaopen_lstage_scheduler(lua_State *L) {
 	const struct luaL_Reg LuaExportFunctions[] = {
-	{"new_thread",thread_new},
+//	{"new_thread",thread_new},
 	{"kill_thread",thread_kill},
 	{"build",thread_from_ptr},
 	{NULL,NULL}
