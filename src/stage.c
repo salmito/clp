@@ -305,15 +305,16 @@ static int stage_getall(lua_State * L) {
 	return 1;
 }
 
-LSTAGE_EXPORTAPI	int luaopen_lstage_stage(lua_State *L) {
-	const struct luaL_Reg LuaExportFunctions[] = {
+static const struct luaL_Reg LuaExportFunctions[] = {
 		{"new",lstage_newstage},
 		{"get",lstage_getstage},
 		{"destroy",lstage_destroystage},
 		{"is_stage",stage_isstage},
 		{"all",stage_getall},
 		{NULL,NULL}
-	};
+};
+
+LSTAGE_EXPORTAPI	int luaopen_lstage_stage(lua_State *L) {
 	if(!H) H=qt_hash_create();
 	lua_newtable(L);
 	lua_newtable(L);

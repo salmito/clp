@@ -15,7 +15,8 @@ local stage=lstage.stage(function()
 		dummy:push()
 	end
 	print('a=',a)
-end)
+	return 1,2,3,4,5
+end,2)
 print("calling",stage,dummy)
 for i=1,10 do stage:push() end
 th:join()

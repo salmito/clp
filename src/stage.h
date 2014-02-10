@@ -17,6 +17,7 @@ typedef struct lstage_Stage * stage_t;
 
 #include "lstage.h"
 #include "lf_queue.h"
+#include "pool.h"
 
 enum stage_flag_t {
 	DESTROYED=0x01
@@ -25,6 +26,7 @@ enum stage_flag_t {
 struct lstage_Stage {
 	LFqueue_t instances;
 	LFqueue_t event_queue;
+	pool_t pool;
 	char * env;
 	size_t env_len;
 	volatile unsigned int flags;

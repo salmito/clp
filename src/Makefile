@@ -1,4 +1,6 @@
-LUA_INCDIR=/usr/include/lua5.1
+LUA_VER=5.2
+
+LUA_INCDIR=/usr/include/lua$(LUA_VER)
 
 INCFLAGS=-I$(LUA_INCDIR)
 CFLAGS=-fPIC $(INCFLAGS) -Wall $(EXTRA_FLAGS) -O2
@@ -21,7 +23,8 @@ OBJ=  lstage.o \
 		event.o \
 		instance.o \
 		threading.o \
-		scheduler.o
+		scheduler.o \
+		pool.o
       
 HEADERS=*.h
 
