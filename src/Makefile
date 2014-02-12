@@ -1,4 +1,4 @@
-LUA_VER=5.2
+LUA_VER=5.1
 
 LUA_INCDIR=/usr/include/lua$(LUA_VER)
 

@@ -13,5 +13,6 @@ typedef struct pool_s {
 } * pool_t;
 
 pool_t lstage_topool(lua_State *L, int i);
+void lstage_buildpool(lua_State * L,pool_t t);
 
 #endif

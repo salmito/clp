@@ -43,9 +43,27 @@ static int get_max_instances(lua_State * L) {
 
 static int stage_getenv(lua_State * L) {
 	stage_t s=lstage_tostage(L,1);
-	lua_pushlstring(L,s->env,s->env_len);
+	if(s->env==NULL)
+		lua_pushnil(L);
+	else
+		lua_pushlstring(L,s->env,s->env_len);
 	return 1;
 }
+
+static int stage_setenv(lua_State * L) {
+	stage_t s=lstage_tostage(L,1);
+	if(s->env!=NULL) luaL_error(L,"Enviroment of stage is already set");
+	const char *env=NULL;
+	size_t len=0; 
+	env=lua_tolstring(L,2,&len);
+   char *envcp=malloc(len+1);
+   envcp[len]='\0';
+   memcpy(envcp,env,len+1);
+   s->env=envcp;
+   s->env_len=len;
+	return 0;
+}
+
 
 static int stage_push(lua_State *L) {
    stage_t s=lstage_tostage(L,1);
@@ -153,6 +171,22 @@ void lstage_buildstage(lua_State * L,stage_t t) {
    lua_setmetatable(L,-2);
 }
 
+static int stage_getpool(lua_State * L) {
+	stage_t s = lstage_tostage(L, 1);
+	if(s->pool)
+		lstage_buildpool(L,s->pool);
+	else
+		lua_pushnil(L);
+	return 1;
+}
+
+static int stage_setpool(lua_State * L) {
+	stage_t s = lstage_tostage(L, 1);
+	pool_t p=lstage_topool(L, 2);
+	s->pool=p;
+	return 0;
+}
+
 static int stage_getparent(lua_State * L) {
 	stage_t s = lstage_tostage(L, 1);
 	if(s->parent)
@@ -161,6 +195,7 @@ static int stage_getparent(lua_State * L) {
 		lua_pushnil(L);
 	return 1;
 }
+
 
 static void get_metatable(lua_State * L) {
 	luaL_getmetatable(L,LSTAGE_STAGE_METATABLE);
@@ -186,7 +221,9 @@ static void get_metatable(lua_State * L) {
   		lua_pushcfunction(L,stage_getid);
   		lua_setfield(L,-2,"id");
   		lua_pushcfunction(L,stage_getenv);
-  		lua_setfield(L,-2,"env");
+  		lua_setfield(L,-2,"getenv");
+ 		lua_pushcfunction(L,stage_setenv);
+ 		lua_setfield(L,-2,"setenv");
   		lua_pushcfunction(L,stage_push);
   		lua_setfield(L,-2,"push");
   		lua_pushcfunction(L,stage_queue_size);
@@ -199,6 +236,10 @@ static void get_metatable(lua_State * L) {
   		lua_setfield(L,-2,"ptr");
   		lua_pushcfunction(L,stage_getparent);
   		lua_setfield(L,-2,"parent");
+  		lua_pushcfunction(L,stage_getpool);
+  		lua_setfield(L,-2,"getpool");
+  		lua_pushcfunction(L,stage_setpool);
+  		lua_setfield(L,-2,"setpool");
   	}
 }
 
@@ -218,25 +259,40 @@ static int stage_isstage(lua_State * L) {
 }
 
 static int lstage_newstage(lua_State * L) {
-   luaL_checktype (L, 1, LUA_TFUNCTION);
-   int idle=luaL_optint(L, 2, 1);
-   int capacity=luaL_optint(L, 3, DEFAULT_QUEUE_CAPACITY);
-   lua_pushcfunction(L,mar_encode);
-   lua_pushvalue(L,1);
-   lua_call(L,1,1);
-   size_t len=0; const char *env=lua_tolstring(L,-1,&len);
-   lua_pop(L,1);
-   stage_t * stage=lua_newuserdata(L,sizeof(stage_t *));
-   (*stage)=malloc(sizeof(struct lstage_Stage));   
-   (*stage)->instances=lstage_lfqueue_new();
-   lstage_lfqueue_setcapacity((*stage)->instances,0);
-   (*stage)->event_queue=lstage_lfqueue_new();
-   lstage_lfqueue_setcapacity((*stage)->event_queue,capacity);
-   char *envcp=malloc(len+1);
-   envcp[len]='\0';
-   memcpy(envcp,env,len+1);
-   (*stage)->env=envcp;
-   (*stage)->env_len=len;
+	int idle=0;
+	stage_t * stage=NULL;
+ 	if(!lua_gettop(L)) {
+ 		stage=lua_newuserdata(L,sizeof(stage_t *));
+	   (*stage)=malloc(sizeof(struct lstage_Stage));   
+	   (*stage)->instances=lstage_lfqueue_new();
+	   lstage_lfqueue_setcapacity((*stage)->instances,0);
+	   (*stage)->event_queue=lstage_lfqueue_new();
+	   lstage_lfqueue_setcapacity((*stage)->event_queue,DEFAULT_QUEUE_CAPACITY);
+	   (*stage)->env=NULL;
+	   (*stage)->env_len=0;
+	} else {
+		luaL_checktype (L, 1, LUA_TFUNCTION);
+   	idle=luaL_optint(L, 2, 1);
+   	int capacity=luaL_optint(L, 3, DEFAULT_QUEUE_CAPACITY);
+   	lua_pushcfunction(L,mar_encode);
+   	lua_pushvalue(L,1);
+   	lua_call(L,1,1);   
+   	const char *env=NULL;
+		size_t len=0; 
+		env=lua_tolstring(L,-1,&len);
+	   lua_pop(L,1);
+	   stage=lua_newuserdata(L,sizeof(stage_t *));
+	   (*stage)=calloc(1,sizeof(struct lstage_Stage));   
+	   (*stage)->instances=lstage_lfqueue_new();
+	   lstage_lfqueue_setcapacity((*stage)->instances,0);
+	   (*stage)->event_queue=lstage_lfqueue_new();
+	   lstage_lfqueue_setcapacity((*stage)->event_queue,capacity);
+	   char *envcp=malloc(len+1);
+	   envcp[len]='\0';
+	   memcpy(envcp,env,len+1);
+	   (*stage)->env=envcp;
+	   (*stage)->env_len=len;
+	}
   	get_metatable(L);
    lua_setmetatable(L,-2);
    if(idle>0) {
@@ -246,6 +302,7 @@ static int lstage_newstage(lua_State * L) {
 	   lua_call(L,2,0);
    }
    (*stage)->parent=NULL;
+   (*stage)->pool=NULL;
    lua_pushliteral(L,LSTAGE_INSTANCE_KEY);
    lua_gettable(L, LUA_REGISTRYINDEX);	
 	if(lua_type(L,-1)==LUA_TLIGHTUSERDATA) {
@@ -263,7 +320,8 @@ static int lstage_destroystage(lua_State * L) {
 	if(!(*s_ptr)) return 0;
 	stage_t s=*s_ptr;
 	qt_hash_remove(H,s);
-	free(s->env);
+	if(s->env!=NULL)
+		free(s->env);
 	instance_t i=NULL;
 	while(lstage_lfqueue_try_pop(s->instances,(void **)&i)) 
 		lstage_destroyinstance(i);

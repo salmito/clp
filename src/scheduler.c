@@ -8,42 +8,42 @@
 
 #include <time.h>
 
-static LFqueue_t ready_queue=NULL;
+//static LFqueue_t ready_queue=NULL;
 
 static int thread_tostring (lua_State *L) {
-  THREAD_T ** t = luaL_checkudata (L, 1, LSTAGE_THREAD_METATABLE);
+  thread_t ** t = luaL_checkudata (L, 1, LSTAGE_THREAD_METATABLE);
   lua_pushfstring (L, "Thread (%p)", *t);
   return 1;
 }
 
-THREAD_T * lstage_tothread(lua_State *L, int i) {
-	thread_t ** t = luaL_checkudata (L, i, LSTAGE_THREAD_METATABLE);
+thread_t lstage_tothread(lua_State *L, int i) {
+	thread_t * t = luaL_checkudata (L, i, LSTAGE_THREAD_METATABLE);
 	luaL_argcheck (L, *t != NULL, i, "not a Thread");
-	return (*t)->th;
+	return *t;
 }
 
 static int thread_join (lua_State *L) {
-	THREAD_T * t=lstage_tothread(L,1);
+	thread_t t=lstage_tothread(L,1);
 	int timeout=lua_tointeger(L,2);
 	if(timeout>0) {
 		struct timespec to;
 		clock_gettime(CLOCK_REALTIME, &to);
 		to.tv_sec += timeout;
-	   pthread_timedjoin_np(*t,NULL,&to);
+	   pthread_timedjoin_np(t->th,NULL,&to);
    } else {
-	   pthread_join(*t,NULL);
+	   pthread_join(t->th,NULL);
    }
    return 0;
 }
 
 static int thread_rawkill (lua_State *L) {
-   THREAD_T * t=lstage_tothread(L,1);
-   THREAD_KILL(t);
+   thread_t t=lstage_tothread(L,1);
+   THREAD_KILL(&(t->th));
    return 0;
 }
 
 static int thread_ptr (lua_State *L) {
-	THREAD_T * t=lstage_tothread(L,1);
+	thread_t t=lstage_tothread(L,1);
 	lua_pushlightuserdata(L,t);
 	return 1;
 }
@@ -132,12 +132,12 @@ static void thread_resume_instance(instance_t i) {
 /*thread main loop*/
 static THREAD_RETURN_T THREAD_CALLCONV thread_mainloop(void *t_val) {
    instance_t i=NULL;
+   thread_t self=(thread_t)t_val;
    while(1) {
-      lstage_lfqueue_pop(ready_queue,(void **)&i);
+      lstage_lfqueue_pop(self->pool->ready,(void **)&i);
       if(i==NULL) break;
       thread_resume_instance(i);
    }
-   free(t_val);
    return t_val;
 }
 
@@ -148,7 +148,7 @@ thread_t * lstage_newthread(lua_State *L,pool_t pool) {
 	*thread=t;
    get_metatable(L);
    lua_setmetatable(L,-2);
-   THREAD_CREATE(*thread, thread_mainloop, *thread, 0 );
+   THREAD_CREATE(&t->th, thread_mainloop, *thread, 0 );
    return thread;
 }
 
@@ -162,24 +162,25 @@ static int thread_from_ptr (lua_State *L) {
    return 1;
 }
 
-static int thread_kill (lua_State *L) {
+int thread_kill (lua_State *L,pool_t pool) {
 	void *a=NULL;
-	lstage_lfqueue_push(ready_queue,&a);
+	lstage_lfqueue_push(pool->ready,&a);
 	return 0;
 }
 
-inline void lstage_pushinstance(instance_t i) {
-	return lstage_lfqueue_push(ready_queue,(void **)&i);
+void lstage_pushinstance(instance_t i) {
+	if(i->stage->pool!=NULL) 
+		return lstage_lfqueue_push(i->stage->pool->ready,(void **)&i);
 }
 
 LSTAGE_EXPORTAPI	int luaopen_lstage_scheduler(lua_State *L) {
 	const struct luaL_Reg LuaExportFunctions[] = {
 //	{"new_thread",thread_new},
-	{"kill_thread",thread_kill},
+//	{"kill_thread",thread_kill},
 	{"build",thread_from_ptr},
 	{NULL,NULL}
 	};
-	if(!ready_queue) ready_queue=lstage_lfqueue_new();
+//	if(!ready_queue) ready_queue=lstage_lfqueue_new();
 	lua_newtable(L);
 	lua_newtable(L);
 	luaL_loadstring(L,"return function() return require'lstage.scheduler' end");

@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include "pool.h"
+#include "scheduler.h"
 
 #define DEFAULT_QUEUE_CAPACITY -1
 
@@ -11,11 +12,17 @@ pool_t lstage_topool(lua_State *L, int i) {
 	return *p;
 }
 
-static void pool_build(lua_State * L,pool_t t) {
+void lstage_buildpool(lua_State * L,pool_t t) {
 	pool_t *s=lua_newuserdata(L,sizeof(pool_t *));
 	*s=t;
 	get_metatable(L);
    lua_setmetatable(L,-2);
+}
+
+static int pool_tostring (lua_State *L) {
+  pool_t * s = luaL_checkudata (L, 1, LSTAGE_POOL_METATABLE);
+  lua_pushfstring (L, "Pool (%p)", *s);
+  return 1;
 }
 
 static int pool_ptr(lua_State * L) {
@@ -26,8 +33,14 @@ static int pool_ptr(lua_State * L) {
 
 static int pool_addthread(lua_State * L) {
 	pool_t s=lstage_topool(L, 1);
-	thread_t * th=lstage_newthread(L,s));
+	thread_t * th=lstage_newthread(L,s);
 	qt_hash_put(s->H,th,th);
+	return 1;
+}
+
+static int pool_size(lua_State * L) {
+	pool_t s = lstage_topool(L, 1);
+	lua_pushinteger(L,qt_hash_count(s->H));
 	return 1;
 }
 
@@ -38,16 +51,16 @@ static void get_metatable(lua_State * L) {
   		luaL_newmetatable(L,LSTAGE_POOL_METATABLE);
   		lua_pushvalue(L,-1);
   		lua_setfield(L,-2,"__index");
-//		lua_pushcfunction (L, pool_tostring);
-//		lua_setfield (L, -2,"__tostring");
+		lua_pushcfunction (L, pool_tostring);
+		lua_setfield (L, -2,"__tostring");
 		luaL_loadstring(L,"local ptr=(...):ptr() return function() return require'lstage.pool'.get(ptr) end");
 		lua_setfield (L, -2,"__wrap");
 		lua_pushcfunction(L,pool_ptr);
   		lua_setfield(L,-2,"ptr");
+		lua_pushcfunction(L,pool_size);
+  		lua_setfield(L,-2,"size");
   		lua_pushcfunction(L,pool_addthread);
   		lua_setfield(L,-2,"add");
-//		lua_pushcfunction (L, lstage_destroystage); //TODO implement refcount?
-//		lua_setfield (L, -2,"__gc");
   	}
 }
 
@@ -58,27 +71,23 @@ static int pool_new(lua_State *L) {
 	p->H=qt_hash_create();
 	p->ready=lstage_lfqueue_new();
 	lstage_lfqueue_setcapacity(p->ready,-1);
-	pool_build(L,p);
+	lstage_buildpool(L,p);
 	return 1;
 }
-
-static int pool_size(lua_State * L) {
-	pool_t s = lstage_topool(L, 1);
-	lua_pushinteger(L,qt_hash_count(s->H));
-	return 1;
-}
-
 
 static int pool_get(lua_State * L) {
 	pool_t p=lua_touserdata(L,1);
 	if(p) {
-		pool_build(L,p);
+		lstage_buildpool(L,p);
 		return 1;
 	}
 	lua_pushnil(L);
 	lua_pushliteral(L,"Pool is null");
 	return 2;
 }
+
+//TODO Destroy pool
+
 
 static const struct luaL_Reg LuaExportFunctions[] = {
 		{"new",pool_new},

@@ -65,8 +65,7 @@ void lstage_putinstance(instance_t i) {
 	if(lstage_lfqueue_try_pop(i->stage->event_queue,(void **)&ev)) {
 		i->ev=ev;
 		i->flags=READY;
-		lstage_pushinstance(i);
-		return;
+		return lstage_pushinstance(i);
 	}
 	if(!lstage_lfqueue_try_push(i->stage->instances,(void **) &i)) {
 		lstage_destroyinstance(i);
