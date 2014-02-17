@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static qt_hash H;
+//static qt_hash H;
 
 #define DEFAULT_IDLE_CAPACITY 10
 #define DEFAULT_QUEUE_CAPACITY -1
@@ -53,14 +53,21 @@ static int stage_getenv(lua_State * L) {
 static int stage_setenv(lua_State * L) {
 	stage_t s=lstage_tostage(L,1);
 	if(s->env!=NULL) luaL_error(L,"Enviroment of stage is already set");
+
+	luaL_checktype (L, 2, LUA_TFUNCTION);	
+	lua_pushcfunction(L,mar_encode);
+   lua_pushvalue(L,2);
+   lua_call(L,1,1);
+	
 	const char *env=NULL;
 	size_t len=0; 
-	env=lua_tolstring(L,2,&len);
+	env=lua_tolstring(L,-1,&len);
    char *envcp=malloc(len+1);
    envcp[len]='\0';
    memcpy(envcp,env,len+1);
    s->env=envcp;
    s->env_len=len;
+   lua_pop(L,1);
 	return 0;
 }
 
@@ -310,7 +317,7 @@ static int lstage_newstage(lua_State * L) {
 	   (*stage)->parent=i->stage;
 	}
 	lua_pop(L,1);
-   qt_hash_put(H,(*stage),(*stage));
+//   qt_hash_put(H,(*stage),(*stage));
    return 1;
 }
 
@@ -319,7 +326,7 @@ static int lstage_destroystage(lua_State * L) {
 	if(!s_ptr) return 0;
 	if(!(*s_ptr)) return 0;
 	stage_t s=*s_ptr;
-	qt_hash_remove(H,s);
+//	qt_hash_remove(H,s);
 	if(s->env!=NULL)
 		free(s->env);
 	instance_t i=NULL;
@@ -345,7 +352,7 @@ static int lstage_getstage(lua_State * L) {
 	return 2;
 }
 
-static void dump_hashtable(const qt_key_t k, void *v, void *l) {
+/*static void dump_hashtable(const qt_key_t k, void *v, void *l) {
 	lua_State *L=l;
 	int n=lua_tonumber(L,-1)+1;
 	lua_pop(L,1);
@@ -358,22 +365,22 @@ static void dump_hashtable(const qt_key_t k, void *v, void *l) {
 static int stage_getall(lua_State * L) {
 	lua_newtable(L);
 	lua_pushnumber(L,0);
-	qt_hash_callback(H, dump_hashtable, L);
+//	qt_hash_callback(H, dump_hashtable, L);
 	lua_pop(L,1);
 	return 1;
-}
+}*/
 
 static const struct luaL_Reg LuaExportFunctions[] = {
 		{"new",lstage_newstage},
 		{"get",lstage_getstage},
 		{"destroy",lstage_destroystage},
 		{"is_stage",stage_isstage},
-		{"all",stage_getall},
+//		{"all",stage_getall},
 		{NULL,NULL}
 };
 
 LSTAGE_EXPORTAPI	int luaopen_lstage_stage(lua_State *L) {
-	if(!H) H=qt_hash_create();
+//	if(!H) H=qt_hash_create();
 	lua_newtable(L);
 	lua_newtable(L);
 	luaL_loadstring(L,"return function() return require'lstage.stage' end");

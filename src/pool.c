@@ -33,16 +33,25 @@ static int pool_ptr(lua_State * L) {
 
 static int pool_addthread(lua_State * L) {
 	pool_t s=lstage_topool(L, 1);
-	thread_t * th=lstage_newthread(L,s);
-	qt_hash_put(s->H,th,th);
+	(void)lstage_newthread(L,s);
+	_DEBUG("pool_addthread pool:%p adding:%p\n",s,*th);
+	s->size+=1;
 	return 1;
 }
 
 static int pool_size(lua_State * L) {
 	pool_t s = lstage_topool(L, 1);
-	lua_pushinteger(L,qt_hash_count(s->H));
+	lua_pushinteger(L,s->size);
 	return 1;
 }
+
+static int pool_killthread(lua_State * L) {
+	pool_t pool=lstage_topool(L, 1);
+	void *a=NULL;
+	lstage_lfqueue_push(pool->ready,&a);
+	return 0;
+}
+
 
 static void get_metatable(lua_State * L) {
 	luaL_getmetatable(L,LSTAGE_POOL_METATABLE);
@@ -61,14 +70,17 @@ static void get_metatable(lua_State * L) {
   		lua_setfield(L,-2,"size");
   		lua_pushcfunction(L,pool_addthread);
   		lua_setfield(L,-2,"add");
+ 		lua_pushcfunction(L,pool_killthread);
+  		lua_setfield(L,-2,"kill");
   	}
 }
 
 static int pool_new(lua_State *L) {
 	int size=lua_tointeger(L,1);
+	_DEBUG("pool_new %d\n",size);
 	if(size<0) luaL_error(L,"Initial pool size must be greater than zero");
 	pool_t p=malloc(sizeof(struct pool_s));
-	p->H=qt_hash_create();
+	p->size=0;
 	p->ready=lstage_lfqueue_new();
 	lstage_lfqueue_setcapacity(p->ready,-1);
 	lstage_buildpool(L,p);
@@ -78,6 +90,7 @@ static int pool_new(lua_State *L) {
 static int pool_get(lua_State * L) {
 	pool_t p=lua_touserdata(L,1);
 	if(p) {
+		_DEBUG("pool_get %p\n",p);
 		lstage_buildpool(L,p);
 		return 1;
 	}

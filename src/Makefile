@@ -18,7 +18,6 @@ G_PLUS_PLUS=g++
 OBJ=  lstage.o \
 		stage.o \
 		lf_queue.o \
-		lf_hash.o \
 		marshal.o \
 		event.o \
 		instance.o \
@@ -39,6 +38,10 @@ all: $(MODULE)
 
 lf_hash.o: lf_hash.c
 	$(CC) -std=c99 -c -o $@ $< $(CFLAGS)	
+
+lf_hash.opp: lf_hash.cpp
+	$(G_PLUS_PLUS) -c -o $@ $< $(CFLAGS)
+
 
 lf_queue.o: lf_queue.cpp
 	$(G_PLUS_PLUS) -c -o $@ $< $(CFLAGS)

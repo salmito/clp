@@ -19,9 +19,9 @@
 #ifdef DEBUG
 void stackDump (lua_State *L, const char *text);
 void tableDump(lua_State *L, int idx, const char* text);
-#define _DEBUG() 
+#define _DEBUG(...) //fprintf(stderr,"%s:%d (%s):",__FILE__,__LINE__,__func__); fprintf(stderr,__VA_ARGS__); 
 #else
-#define _DEBUG() 
+#define _DEBUG(...) 
 #define stackDump(...) 
 #define tableDump(...) 
 #endif

@@ -10,7 +10,7 @@ enum thread_e {
 };
 
 typedef struct thread_s {
-	THREAD_T th;
+	THREAD_T * th;
 	pool_t pool;
 	volatile enum thread_e state;
 } * thread_t;

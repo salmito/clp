@@ -1,6 +1,49 @@
+local lstage=require'lstage'
 local s=require'lstage.stage'
+local e=require'lstage.event'
 local sched=require'lstage.scheduler'
-local pool=require'lstage.pool'
+
+local pool=require'lstage.pool'.new()
+print("Created a thread_pool",pool)
+print("Pool size",pool:size())
+local th={}
+
+for i=1,100 do
+	th[#th+1]=pool:add() 
+	print("Pool size",pool:size())
+end
+
+local stage=s.new()
+
+print("Created stage",stage,stage:getpool(),stage:getenv())
+--stage:setpool(pool)
+print("Set pool of stage",stage,stage:getpool())
+
+stage:setenv(function(str) 
+	e.sleep(0.5)
+	print'yeah'
+	
+end)
+print("Env stage",stage,stage:getenv())
+stage:instantiate(100)
+print("Instantiated",stage,stage:instances())
+for i=1,100 do
+	stage:push('world')
+end
+
+for i,t in ipairs(th) do
+	print(i,t)
+--	pool:kill()
+end
+
+for i,t in ipairs(th) do
+	t:join()
+	print("thread ended")
+end
+
+e.sleep(10)
+
+--[[
 local event=require'lstage.event'
 
 local stage3=s.new()
@@ -28,4 +71,4 @@ print(stage3,"instances:",stage3:instances())
 local n=stage3:free(10)
 print(stage3,"destroyed:",n,stage3:instances())
 th:join()
-
+]]

@@ -4,11 +4,10 @@
 #include <lua.h>
 
 #include "lstage.h"
-#include "lf_hash.h"
 #include "lf_queue.h"
 
 typedef struct pool_s {
-	qt_hash H;
+	volatile size_t size;
 	LFqueue_t ready;
 } * pool_t;
 
