@@ -49,6 +49,14 @@ static int stage_getenv(lua_State * L) {
 	return 1;
 }
 
+static int stage_eq(lua_State * L) {
+	stage_t s1=lstage_tostage(L,1);
+	stage_t s2=lstage_tostage(L,2);
+	lua_pushboolean(L,s1==s2);
+	return 1;
+}
+
+
 static int stage_setenv(lua_State * L) {
 	stage_t s=lstage_tostage(L,1);
 	if(s->env!=NULL) luaL_error(L,"Enviroment of stage is already set");
@@ -216,6 +224,8 @@ static void get_metatable(lua_State * L) {
 		lua_setfield (L, -2,"__tostring");
 		luaL_loadstring(L,"local ptr=(...):ptr() return function() return require'lstage.stage'.get(ptr) end");
 		lua_setfield (L, -2,"__wrap");
+		lua_pushcfunction (L, stage_eq); //TODO implement refcount?
+		lua_setfield (L, -2,"__eq");
 //		lua_pushcfunction (L, lstage_destroystage); //TODO implement refcount?
 //		lua_setfield (L, -2,"__gc");
   		lua_pushcfunction(L,get_max_instances);
