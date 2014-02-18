@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include "stage.h"
 #include "pool.h"
 #include "scheduler.h"
 
@@ -48,7 +49,7 @@ static int pool_size(lua_State * L) {
 static int pool_killthread(lua_State * L) {
 	pool_t pool=lstage_topool(L, 1);
 	void *a=NULL;
-	lstage_lfqueue_push(pool->ready,&a);
+	lstage_pqueue_push(pool->ready,a);
 	return 0;
 }
 
@@ -91,8 +92,8 @@ static int pool_new(lua_State *L) {
 	if(size<0) luaL_error(L,"Initial pool size must be greater than zero");
 	pool_t p=malloc(sizeof(struct pool_s));
 	p->size=0;
-	p->ready=lstage_lfqueue_new();
-	lstage_lfqueue_setcapacity(p->ready,-1);
+	p->ready=lstage_pqueue_new();
+	//lstage_lfqueue_setcapacity(p->ready,-1);
 	lstage_buildpool(L,p);
 	return 1;
 }

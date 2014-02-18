@@ -4,6 +4,7 @@
 
 #include "lstage.h"
 #include "marshal.h"
+#include "stage.h"
 #include "pool.h"
 #include "threading.h"
 

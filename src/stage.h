@@ -30,6 +30,7 @@ struct lstage_Stage {
 	char * env;
 	size_t env_len;
 	volatile unsigned int flags;
+	volatile int priority;
    stage_t parent;
 };
 

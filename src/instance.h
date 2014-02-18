@@ -1,13 +1,14 @@
 #ifndef _INSTANCE_H
 #define _INSTANCE_H
 
+typedef struct instance_s * instance_t;
+
 #include "lstage.h"
 #include "stage.h"
 #include "event.h"
 
 #include "lua.h"
 
-typedef struct instance_s * instance_t;
 #define LSTAGE_INSTANCE_KEY "lstage-instance-key"
 
 enum instance_flag_t {

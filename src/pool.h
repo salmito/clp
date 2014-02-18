@@ -4,11 +4,11 @@
 #include <lua.h>
 
 #include "lstage.h"
-#include "lf_queue.h"
+#include "p_queue.h"
 
 typedef struct pool_s {
 	volatile size_t size;
-	LFqueue_t ready;
+	Pqueue_t ready;
 } * pool_t;
 
 pool_t lstage_topool(lua_State *L, int i);

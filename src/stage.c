@@ -203,6 +203,20 @@ static int stage_setpool(lua_State * L) {
 	return 0;
 }
 
+static int stage_setpriority(lua_State * L) {
+	stage_t s = lstage_tostage(L, 1);
+	int p=lua_tointeger(L,2);
+	s->priority=p;
+	return 0;
+}
+
+static int stage_getpriority(lua_State * L) {
+	stage_t s = lstage_tostage(L, 1);
+	lua_pushinteger(L,s->priority);
+	return 1;
+}
+
+
 static int stage_getparent(lua_State * L) {
 	stage_t s = lstage_tostage(L, 1);
 	if(s->parent)
@@ -212,52 +226,42 @@ static int stage_getparent(lua_State * L) {
 	return 1;
 }
 
+static const struct luaL_Reg StageMetaFunctions[] = {
+		{"__eq",stage_eq},
+		{"__tostring",stage_tostring},
+		{"instances",get_max_instances},
+		{"getcapacity",get_queue_capacity},
+		{"setcapacity",set_queue_capacity},
+		{"id",stage_getid},
+		{"getenv",stage_getenv},
+		{"setenv",stage_setenv},
+		{"push",stage_push},
+		{"size",stage_queue_size},
+		{"instantiate",stage_instantiate},
+		{"free",stage_destroyinstances},
+		{"ptr",stage_ptr},
+		{"parent",stage_getparent},
+		{"getpool",stage_getpool},
+		{"setpool",stage_setpool},
+		{"getpriority",stage_getpriority},
+		{"setpriority",stage_setpriority},
+		{NULL,NULL}
+};
 
 static void get_metatable(lua_State * L) {
 	luaL_getmetatable(L,LSTAGE_STAGE_METATABLE);
    if(lua_isnil(L,-1)) {
    	lua_pop(L,1);
   		luaL_newmetatable(L,LSTAGE_STAGE_METATABLE);
+  		#if LUA_VERSION_NUM < 502
+			luaL_register(L, NULL, StageMetaFunctions);
+		#else
+			luaL_setfuncs(L, StageMetaFunctions, 0);
+		#endif 
   		lua_pushvalue(L,-1);
   		lua_setfield(L,-2,"__index");
-		lua_pushcfunction (L, stage_tostring);
-		lua_setfield (L, -2,"__tostring");
 		luaL_loadstring(L,"local ptr=(...):ptr() return function() return require'lstage.stage'.get(ptr) end");
 		lua_setfield (L, -2,"__wrap");
-		lua_pushcfunction (L, stage_eq); //TODO implement refcount?
-		lua_setfield (L, -2,"__eq");
-//		lua_pushcfunction (L, lstage_destroystage); //TODO implement refcount?
-//		lua_setfield (L, -2,"__gc");
-  		lua_pushcfunction(L,get_max_instances);
-  		lua_setfield(L,-2,"instances");
-//		lua_pushcfunction(L,set_max_instances);
-//  		lua_setfield(L,-2,"set_instances");
-  		lua_pushcfunction(L,get_queue_capacity);
-  		lua_setfield(L,-2,"capacity");
-  		lua_pushcfunction(L,set_queue_capacity);
-  		lua_setfield(L,-2,"set_capacity");
-  		lua_pushcfunction(L,stage_getid);
-  		lua_setfield(L,-2,"id");
-  		lua_pushcfunction(L,stage_getenv);
-  		lua_setfield(L,-2,"getenv");
- 		lua_pushcfunction(L,stage_setenv);
- 		lua_setfield(L,-2,"setenv");
-  		lua_pushcfunction(L,stage_push);
-  		lua_setfield(L,-2,"push");
-  		lua_pushcfunction(L,stage_queue_size);
-  		lua_setfield(L,-2,"queue_size");
-  		lua_pushcfunction(L,stage_instantiate);
-  		lua_setfield(L,-2,"instantiate");
-  		lua_pushcfunction(L,stage_destroyinstances);
-  		lua_setfield(L,-2,"free");
-  		lua_pushcfunction(L,stage_ptr);
-  		lua_setfield(L,-2,"ptr");
-  		lua_pushcfunction(L,stage_getparent);
-  		lua_setfield(L,-2,"parent");
-  		lua_pushcfunction(L,stage_getpool);
-  		lua_setfield(L,-2,"getpool");
-  		lua_pushcfunction(L,stage_setpool);
-  		lua_setfield(L,-2,"setpool");
   	}
 }
 
@@ -312,6 +316,7 @@ static int lstage_newstage(lua_State * L) {
 	   (*stage)->env_len=len;
 	}
 	(*stage)->pool=lstage_defaultpool;
+	(*stage)->priority=0;
   	get_metatable(L);
    lua_setmetatable(L,-2);
    if(idle>0) {

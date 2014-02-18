@@ -4,7 +4,7 @@
 #include "threading.h"
 #include "event.h"
 #include "marshal.h"
-#include "lf_queue.h"
+#include "p_queue.h"
 
 #include <time.h>
 
@@ -144,7 +144,7 @@ static THREAD_RETURN_T THREAD_CALLCONV thread_mainloop(void *t_val) {
    thread_t self=(thread_t)t_val;
    while(1) {
    	_DEBUG("Thread %p wating for ready instaces\n",self);
-      lstage_lfqueue_pop(self->pool->ready,(void **)&i);
+      while(!lstage_pqueue_try_pop(self->pool->ready,&i));
       if(i==NULL) break;
      	_DEBUG("Thread %p got a ready instace %p\n",self,i);
       thread_resume_instance(i);
@@ -178,8 +178,7 @@ static int thread_from_ptr (lua_State *L) {
 }
 
 void lstage_pushinstance(instance_t i) {
-	if(i->stage->pool!=NULL) 
-		return lstage_lfqueue_push(i->stage->pool->ready,(void **)&i);
+	return lstage_pqueue_push(i->stage->pool->ready,i);
 }
 
 static const struct luaL_Reg LuaExportFunctions[] = {
