@@ -1,5 +1,4 @@
 #include "stage.h"
-#include "lf_hash.h"
 #include "marshal.h"
 #include "event.h"
 #include "scheduler.h"
@@ -14,7 +13,7 @@
 #define DEFAULT_QUEUE_CAPACITY -1
 
 static void get_metatable(lua_State * L);
-
+extern pool_t lstage_defaultpool;
 stage_t lstage_tostage(lua_State *L, int i) {
 	stage_t * s = luaL_checkudata (L, i, LSTAGE_STAGE_METATABLE);
 	luaL_argcheck (L, s != NULL, i, "Stage expected");
@@ -153,6 +152,8 @@ static int stage_destroyinstances(lua_State * L) {
 
 static int stage_instantiate(lua_State * L) {
 	stage_t s = lstage_tostage(L, 1);
+	if(s->pool==NULL) luaL_error(L,"Stage must be associated to a pool");
+	if(s->env==NULL) luaL_error(L,"Stage must have an environment");
 	int n=lua_tointeger(L,2);
 	int i;
 	if(n<=0) luaL_error(L,"Argument must be grater than zero");
@@ -300,6 +301,7 @@ static int lstage_newstage(lua_State * L) {
 	   (*stage)->env=envcp;
 	   (*stage)->env_len=len;
 	}
+	(*stage)->pool=lstage_defaultpool;
   	get_metatable(L);
    lua_setmetatable(L,-2);
    if(idle>0) {
@@ -309,7 +311,6 @@ static int lstage_newstage(lua_State * L) {
 	   lua_call(L,2,0);
    }
    (*stage)->parent=NULL;
-   (*stage)->pool=NULL;
    lua_pushliteral(L,LSTAGE_INSTANCE_KEY);
    lua_gettable(L, LUA_REGISTRYINDEX);	
 	if(lua_type(L,-1)==LUA_TLIGHTUSERDATA) {

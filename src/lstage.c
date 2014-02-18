@@ -1,5 +1,10 @@
+#include <unistd.h> 
+#include <errno.h>
+#include <string.h>  
+
 #include "lstage.h"
 #include "marshal.h"
+#include "pool.h"
 #include "threading.h"
 
 #ifdef DEBUG
@@ -67,7 +72,7 @@ static int lstage_gettime(lua_State * L) {
    return 1;
 }
 
-static int lstage_cpus(lua_State *L) {
+static int get_cpus() {
    #ifdef _WIN32
       #ifndef _SC_NPROCESSORS_ONLN
          SYSTEM_INFO info;
@@ -78,24 +83,17 @@ static int lstage_cpus(lua_State *L) {
    #endif
    #ifdef _SC_NPROCESSORS_ONLN
 	   long nprocs = -1;
-	   long nprocs_max = -1;
       nprocs = sysconf(_SC_NPROCESSORS_ONLN);
-      if (nprocs < 1) {
-         luaL_error(L,"Could not determine number of CPUs online:\n%s\n", 
-            strerror (errno));
-      }
-      nprocs_max = sysconf(_SC_NPROCESSORS_CONF);
-      if (nprocs_max < 1) {
-         luaL_error(L, "Could not determine number of CPUs configured:\n%s\n", 
-            strerror (errno));
-      }
-      lua_pushnumber(L,nprocs);
-      lua_pushnumber(L,nprocs_max);
-      return 2;
-   #else
-      luaL_error(L, "Could not determine number of CPUs");
+      if (nprocs >= 1) 
+      	return nprocs;
    #endif
    return 0;
+}
+
+
+static int lstage_cpus(lua_State *L) {
+   lua_pushnumber(L,get_cpus());
+   return 1;
 }
 
 static void lstage_require(lua_State *L, const char *lib, lua_CFunction func) {
@@ -111,21 +109,40 @@ static void lstage_require(lua_State *L, const char *lib, lua_CFunction func) {
 LSTAGE_EXPORTAPI int luaopen_lstage_event(lua_State *L);
 LSTAGE_EXPORTAPI int luaopen_lstage_scheduler(lua_State *L);
 LSTAGE_EXPORTAPI int luaopen_lstage_stage(lua_State *L);
+LSTAGE_EXPORTAPI int luaopen_lstage_pool(lua_State *L);
 
-LSTAGE_EXPORTAPI int luaopen_lstage(lua_State *L) {
-	const struct luaL_Reg LuaExportFunctions[] = {
+static const struct luaL_Reg LuaExportFunctions[] = {
 	{"_VERSION",lstage_version},
 	{"now",lstage_gettime},
 	{"cpus",lstage_cpus},
 	{NULL,NULL}
 	};
+
+pool_t lstage_defaultpool=NULL;
+
+LSTAGE_EXPORTAPI int luaopen_lstage(lua_State *L) {
 	lua_newtable(L);
+	lstage_require(L,"lstage.pool",luaopen_lstage_pool);	
+	lua_getfield(L,-1,"new");
+	if(!lstage_defaultpool) {
+		lua_pushvalue(L,-1);
+		lua_call(L,0,1);
+		lstage_defaultpool=lstage_topool(L,-1);
+		lua_getfield(L,-1,"add");
+		lua_pushvalue(L,-2);
+		lua_call(L,1,0);
+	} else {
+		lstage_buildpool(L,lstage_defaultpool);
+	}
+	lua_setfield(L,-4,"default");
+	lua_setfield(L,-3,"pool");
+	lua_pop(L,1);
 	lstage_require(L,"lstage.event",luaopen_lstage_event);
 	lua_getfield(L,-1,"encode");
 	lua_setfield(L,-3,"encode");
 	lua_getfield(L,-1,"decode");
 	lua_setfield(L,-3,"decode");
-	lua_pop(L,1);
+	lua_setfield(L,-2,"event");
 	lstage_require(L,"lstage.scheduler",luaopen_lstage_scheduler);
 	lua_setfield(L,-2,"scheduler");
 	lstage_require(L,"lstage.stage",luaopen_lstage_stage);

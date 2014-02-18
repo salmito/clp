@@ -141,6 +141,7 @@ static THREAD_RETURN_T THREAD_CALLCONV thread_mainloop(void *t_val) {
       thread_resume_instance(i);
    }
   	_DEBUG("Thread %p quitting\n",self);
+  	self->pool->size--; //TODO atomic
    return t_val;
 }
 
