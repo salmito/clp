@@ -48,6 +48,13 @@ static int thread_ptr (lua_State *L) {
 	return 1;
 }
 
+static int thread_eq(lua_State * L) {
+	thread_t t1=lstage_tothread(L,1);
+	thread_t t2=lstage_tothread(L,2);
+	lua_pushboolean(L,t1==t2);
+	return 1;
+}
+
 static void get_metatable(lua_State * L) {
 	luaL_getmetatable(L,LSTAGE_THREAD_METATABLE);
    if(lua_isnil(L,-1)) {
@@ -57,6 +64,8 @@ static void get_metatable(lua_State * L) {
   		lua_setfield(L,-2,"__index");
 		lua_pushcfunction (L, thread_tostring);
 		lua_setfield (L, -2,"__tostring");
+		lua_pushcfunction (L, thread_eq);
+		lua_setfield (L, -2,"__eq");
 		lua_pushcfunction(L,thread_join);
 		lua_setfield (L, -2,"join");
 		lua_pushcfunction(L,thread_ptr);

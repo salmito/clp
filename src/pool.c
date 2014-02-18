@@ -53,6 +53,14 @@ static int pool_killthread(lua_State * L) {
 }
 
 
+static int pool_eq(lua_State * L) {
+	pool_t p1=lstage_topool(L, 1);
+	pool_t p2=lstage_topool(L, 2);
+	lua_pushboolean(L,p1==p2);
+	return 1;
+}
+
+
 static void get_metatable(lua_State * L) {
 	luaL_getmetatable(L,LSTAGE_POOL_METATABLE);
    if(lua_isnil(L,-1)) {
@@ -64,6 +72,8 @@ static void get_metatable(lua_State * L) {
 		lua_setfield (L, -2,"__tostring");
 		luaL_loadstring(L,"local ptr=(...):ptr() return function() return require'lstage.pool'.get(ptr) end");
 		lua_setfield (L, -2,"__wrap");
+		lua_pushcfunction (L, pool_eq);
+		lua_setfield (L, -2,"__eq");
 		lua_pushcfunction(L,pool_ptr);
   		lua_setfield(L,-2,"ptr");
 		lua_pushcfunction(L,pool_size);
