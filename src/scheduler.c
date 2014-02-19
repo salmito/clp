@@ -111,6 +111,7 @@ static void thread_resume_instance(instance_t i) {
 				lua_gettable(L,LUA_REGISTRYINDEX);
 		      lua_pushcfunction(L,mar_decode);
 		      lua_pushlstring(L,i->ev->data,i->ev->len);
+            i->waiting=i->ev->waiting;
 		      lstage_destroyevent(i->ev);
   		      i->ev=NULL;
 				if(lua_pcall(L,1,1,0)) {
@@ -135,7 +136,18 @@ static void thread_resume_instance(instance_t i) {
 		   } 
 			break;
 	}
-	if(i->flags!=WAITING_IO) lstage_putinstance(i);
+	if(i->flags!=WAITING_IO) {
+	   if(i->waiting) {
+	      lua_pushliteral(i->waiting->L,STAGE_HANDLER_KEY);
+			lua_gettable(i->waiting->L,LUA_REGISTRYINDEX);
+	   	i->waiting->flags=READY;
+	   	i->waiting->ev=NULL;
+	   	i->waiting->args=0;
+	      lstage_pushinstance(i->waiting);
+	      i->waiting=NULL;
+	   }
+	   lstage_putinstance(i);
+	}
 }
 
 /*thread main loop*/

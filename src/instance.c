@@ -55,6 +55,7 @@ instance_t lstage_newinstance(stage_t s) {
 	i->L=L;
 	i->stage=s;
 	i->flags=CREATED;
+	i->waiting=NULL;
 	i->ev=NULL;
 	lstage_pushinstance(i);
 	return i;

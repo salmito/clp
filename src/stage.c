@@ -78,6 +78,46 @@ static int stage_setenv(lua_State * L) {
 	return 0;
 }
 
+static int stage_call(lua_State *L) {
+   lua_pushliteral(L,LSTAGE_INSTANCE_KEY);
+	lua_gettable(L, LUA_REGISTRYINDEX);
+	if(lua_type(L,-1)!=LUA_TLIGHTUSERDATA) {
+	   luaL_error(L,"A stage can only be called inside another stage");
+	}
+	instance_t self=lua_touserdata(L,-1);
+	lua_pop(L,1);
+   stage_t s=lstage_tostage(L,1);
+   int top=lua_gettop(L);
+   lua_pushcfunction(L,mar_encode);
+   lua_newtable(L);
+   int i;
+   for(i=2;i<=top;i++) {
+      lua_pushvalue(L,i);
+      lua_rawseti(L,-2,i-1);
+   }
+   lua_call(L,1,1);
+   size_t len;
+   const char * str=lua_tolstring(L,-1,&len);
+   lua_pop(L,1);
+   event_t ev=lstage_newevent(str,len);
+   ev->waiting=self;
+   instance_t ins=NULL;
+   if(lstage_lfqueue_trypop(s->instances,ins)) {
+   	ins->ev=ev;
+		ins->flags=READY;
+		ins->waiting=self;
+		lstage_pushinstance(ins);
+		lua_pushboolean(L,1);
+		return lua_yield(L,0);
+   } else if(lstage_lfqueue_trypush(s->event_queue,ev)) {
+      lua_pushboolean(L,1);
+      return lua_yield(L,0);
+   } 
+   lstage_destroyevent(ev);
+   lua_pushnil(L);
+   lua_pushliteral(L,"Event queue is full");
+   return 2;
+}
 
 static int stage_push(lua_State *L) {
    stage_t s=lstage_tostage(L,1);
@@ -245,6 +285,7 @@ static const struct luaL_Reg StageMetaFunctions[] = {
 		{"setpool",stage_setpool},
 		{"getpriority",stage_getpriority},
 		{"setpriority",stage_setpriority},
+		{"call",stage_call},
 		{NULL,NULL}
 };
 

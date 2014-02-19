@@ -24,6 +24,7 @@ struct instance_s {
    stage_t stage;
    event_t ev;
    enum instance_flag_t flags;
+   instance_t waiting;
    int args;
 };
 
