@@ -91,6 +91,27 @@ static int get_cpus() {
    return 0;
 }
 
+static int lstage_setmetatable(lua_State *L) {
+   lua_pushvalue(L,2);
+   lua_setmetatable(L,1);
+   lua_pushvalue(L,1);
+   return 1;
+}
+
+int lstage_getmetatable(lua_State *L) {
+   if(lua_type(L,1)==LUA_TSTRING) {
+      const char *tname=lua_tostring(L,1);
+      luaL_getmetatable(L,tname);
+   } else {
+      if(!lua_getmetatable (L,1)) {
+         lua_pushnil(L);
+         lua_pushliteral(L,"Metatable not found for the provided value");
+         return 2;
+      }
+   }
+   return 1;
+}
+
 
 static int lstage_cpus(lua_State *L) {
    lua_pushnumber(L,get_cpus());
@@ -116,6 +137,8 @@ static const struct luaL_Reg LuaExportFunctions[] = {
 	{"_VERSION",lstage_version},
 	{"now",lstage_gettime},
 	{"cpus",lstage_cpus},
+	{"getmetatable",lstage_getmetatable},
+	{"setmetatable",lstage_setmetatable},
 	{NULL,NULL}
 	};
 
