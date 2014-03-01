@@ -63,11 +63,13 @@ instance_t lstage_newinstance(stage_t s) {
 
 void lstage_putinstance(instance_t i) {
 	event_t ev=NULL;
+		//TODO maybe put a spinlock here
 	if(lstage_lfqueue_try_pop(i->stage->event_queue,(void **)&ev)) {
 		i->ev=ev;
 		i->flags=READY;
 		return lstage_pushinstance(i);
 	}
+	i->flags=IDLE;
 	if(!lstage_lfqueue_try_push(i->stage->instances,(void **) &i)) {
 		lstage_destroyinstance(i);
 	}

@@ -129,6 +129,8 @@ static void thread_resume_instance(instance_t i) {
 				for(j=1;j<=n;j++) lua_rawgeti(L,2,j);
 				lua_remove(L,2);
 				i->args=n;
+			} else {
+				i->args=0;
 			}
 			if(lua_pcall(i->L,i->args,0,0)) {
 		      const char * err=lua_tostring(L,-1);
@@ -136,13 +138,12 @@ static void thread_resume_instance(instance_t i) {
 		   } 
 			break;
 	}
-	if(i->flags!=WAITING_IO) {
+	if(i->flags!=WAITING_IO && i->flags!=TIMEOUT_IO) {
 	   if(i->waiting) {
 	      lua_pushliteral(i->waiting->L,STAGE_HANDLER_KEY);
 			lua_gettable(i->waiting->L,LUA_REGISTRYINDEX);
 	   	i->waiting->flags=READY;
 	   	i->waiting->ev=NULL;
-	   	i->waiting->args=0;
 	      lstage_pushinstance(i->waiting);
 	      i->waiting=NULL;
 	   }

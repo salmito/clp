@@ -1,12 +1,12 @@
 local lstage=require'lstage'
 local s1=lstage.stage()
 local s2=lstage.stage()
-s1:setenv(function()
+s1:wrap(function()
    print('calling',s2) 
    s2:call(42)
    print('called',s2)   
 end)
-s2:setenv(function(i)
+s2:wrap(function(i)
    print('s2',i) 
 end)
 

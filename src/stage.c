@@ -57,7 +57,7 @@ static int stage_eq(lua_State * L) {
 }
 
 
-static int stage_setenv(lua_State * L) {
+static int stage_wrap(lua_State * L) {
 	stage_t s=lstage_tostage(L,1);
 	if(s->env!=NULL) luaL_error(L,"Enviroment of stage is already set");
 
@@ -274,7 +274,7 @@ static const struct luaL_Reg StageMetaFunctions[] = {
 		{"setcapacity",set_queue_capacity},
 		{"id",stage_getid},
 		{"getenv",stage_getenv},
-		{"setenv",stage_setenv},
+		{"wrap",stage_wrap},
 		{"push",stage_push},
 		{"size",stage_queue_size},
 		{"instantiate",stage_instantiate},

@@ -37,5 +37,5 @@ void tableDump(lua_State *L, int idx, const char* text);
 #define LSTAGE_STAGE_METATABLE "lstage-Stage *"
 #define LSTAGE_POOL_METATABLE "lstage-Pool *"
 #define LSTAGE_THREAD_METATABLE "lstage-Thread *"
-
+#define LSTAGE_CHANNEL_METATABLE "lstage-Channel *"
 #endif

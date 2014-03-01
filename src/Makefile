@@ -24,7 +24,8 @@ OBJ=  lstage.o \
 		instance.o \
 		threading.o \
 		scheduler.o \
-		pool.o
+		pool.o \
+		channel.o
       
 HEADERS=*.h
 

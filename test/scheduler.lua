@@ -20,14 +20,14 @@ print("Created stage",stage1,stage1:getpool(),stage1:getenv())
 --stage:setpool(pool)
 print("Set pool of stage",stage1,stage1:getpool())
 
-stage1:setenv(function(str) 
+stage1:wrap(function(str) 
 	e.sleep(0.5)
 	stage2:push('event')
 	print(str)
 end)
 
 local i=0
-stage2:setenv(function(e) i=i+1 print(e,i) end)
+stage2:wrap(function(e) i=i+1 print(e,i) end)
 
 
 print("Env stage",stage1,stage1:getenv())
