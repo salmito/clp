@@ -3,6 +3,8 @@ local channel=require'lstage.channel'
 
 local chan=channel.new()
 
-local s1=lstage.stage(function() print('chan',chan) end)
+local s1=lstage.stage(function() print('chan',chan:get()) end)
+local s2=lstage.stage(function() print('chan',chan:push('test')) end)
 s1:push()
-lstage.event.sleep(1)
+s2:push()
+lstage.event.sleep(10)

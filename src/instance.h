@@ -16,7 +16,8 @@ enum instance_flag_t {
 	IDLE,
 	READY,
 	WAITING_IO,
-	TIMEOUT_IO
+	TIMEOUT_IO,
+	WAITING_EVENT,
 };
 
 struct instance_s {
