@@ -265,7 +265,7 @@ static void prepare_timeout( struct timespec *ts, time_d abs_secs ) {
                       (prio == +1) ? THREAD_PRIORITY_ABOVE_NORMAL :
                       (prio == -1) ? THREAD_PRIORITY_BELOW_NORMAL :
                       (prio == -2) ? THREAD_PRIORITY_LOWEST :
-                                     THREAD_PRIORITY_IDLE;  // -3
+                                     THREAD_PRIORITY_I_IDLE;  // -3
 
         if (!SetThreadPriority( h, win_prio )) 
             FAIL( "SetThreadPriority", GetLastError() );

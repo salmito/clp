@@ -9,7 +9,7 @@
 
 //static qt_hash H;
 
-#define DEFAULT_IDLE_CAPACITY 10
+#define DEFAULT_I_IDLE_CAPACITY 10
 #define DEFAULT_QUEUE_CAPACITY -1
 
 static void get_metatable(lua_State * L);
@@ -102,15 +102,18 @@ static int stage_call(lua_State *L) {
    event_t ev=lstage_newevent(str,len);
    ev->waiting=self;
    instance_t ins=NULL;
-   if(lstage_lfqueue_trypop(s->instances,ins)) {
+   if(lstage_lfqueue_try_pop(s->instances,(void **) &(ins))) {
+//   	ev->waiting=NULL;
    	ins->ev=ev;
-		ins->flags=READY;
-		ins->waiting=self;
+		ins->flags=I_READY;
+		self->flags=I_WAITING_EVENT;
+		//ins->waiting=self;
 		lstage_pushinstance(ins);
 		lua_pushboolean(L,1);
 		return lua_yield(L,0);
-   } else if(lstage_lfqueue_trypush(s->event_queue,ev)) {
+   } else if(lstage_lfqueue_try_push(s->event_queue,(void **)&(ev))) {
       lua_pushboolean(L,1);
+      self->flags=I_WAITING_EVENT;
       return lua_yield(L,0);
    } 
    lstage_destroyevent(ev);
@@ -135,14 +138,14 @@ static int stage_push(lua_State *L) {
    lua_pop(L,1);
    event_t ev=lstage_newevent(str,len);
    instance_t ins=NULL;
-   if(lstage_lfqueue_trypop(s->instances,ins)) {
+   if(lstage_lfqueue_try_pop(s->instances,(void **) &(ins))) {
    	ins->ev=ev;
-		ins->flags=READY;
+		ins->flags=I_READY;
 		lstage_pushinstance(ins);
-		lua_pushboolean(L,1);
+		lua_pushvalue(L,1);
 		return 1;
-   } else if(lstage_lfqueue_trypush(s->event_queue,ev)) {
-      lua_pushboolean(L,1);
+   } else if(lstage_lfqueue_try_push(s->event_queue,(void **) &(ev))) {
+      lua_pushvalue(L,1);
       return 1;
    } 
    lstage_destroyevent(ev);
@@ -189,7 +192,7 @@ static int stage_destroyinstances(lua_State * L) {
 		luaL_error(L,"Cannot destroy this number of instances");
 	for(i=0;i<n;i++) {
 		instance_t i;
-		if(!lstage_lfqueue_trypop(s->instances,i)) break;
+		if(!lstage_lfqueue_try_pop(s->instances,(void **) &(i))) break;
 		lstage_destroyinstance(i); //should not longjmp
 	}
 	lstage_lfqueue_setcapacity(s->instances,lstage_lfqueue_getcapacity(s->instances)-i);

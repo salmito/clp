@@ -78,14 +78,15 @@ static void get_metatable(lua_State * L) {
 }
 
 static void thread_resume_instance(instance_t i) {
-	_DEBUG("Resuming instance: %p\n",i);
+	_DEBUG("Resuming instance: %p %d lua_State (%p)\n",i,i->flags,i->L);
 	lua_State * L=i->L;
+	
 	switch(i->flags) {
-		case CREATED:
+		case I_CREATED:
 			lstage_initinstance(i);
 			break;
-		case WAITING_IO:
-			i->flags=READY;
+		case I_WAITING_IO:
+			i->flags=I_READY;
 			lua_pushliteral(L,STAGE_HANDLER_KEY);
 			lua_gettable(L,LUA_REGISTRYINDEX);
 			lua_pushboolean(L,1);
@@ -94,8 +95,8 @@ static void thread_resume_instance(instance_t i) {
 		      fprintf(stderr,"Error resuming instance: %s\n",err);
 		   }
 		   break;
-		case TIMEOUT_IO:
-			i->flags=READY;
+		case I_TIMEOUT_IO:
+			i->flags=I_READY;
 			lua_pushliteral(L,STAGE_HANDLER_KEY);
 			lua_gettable(L,LUA_REGISTRYINDEX);
 			lua_pushboolean(L,0);
@@ -104,13 +105,16 @@ static void thread_resume_instance(instance_t i) {
 		      fprintf(stderr,"Error resuming instance: %s\n",err);
 		   }
 		   break;
-		case READY:
+		case I_READY:
 			if(i->ev) {
 				lua_pushliteral(L,STAGE_HANDLER_KEY);
 				lua_gettable(L,LUA_REGISTRYINDEX);
 		      lua_pushcfunction(L,mar_decode);
 		      lua_pushlstring(L,i->ev->data,i->ev->len);
-            i->waiting=i->ev->waiting;
+		      
+            if(i->ev->waiting) {
+            	i->waiting=i->ev->waiting;
+            }
 		      lstage_destroyevent(i->ev);
   		      i->ev=NULL;
 				if(lua_pcall(L,1,1,0)) {
@@ -129,27 +133,32 @@ static void thread_resume_instance(instance_t i) {
 				lua_remove(L,2);
 				i->args=n;
 			} else {
+				lua_pushliteral(L,STAGE_HANDLER_KEY);
+				lua_gettable(L,LUA_REGISTRYINDEX);
 				i->args=0;
 			}
-			if(lua_pcall(i->L,i->args,0,0)) {
+			if(lua_pcall(L,i->args,0,0)) {
 		      const char * err=lua_tostring(L,-1);
 		      fprintf(stderr,"Error resuming instance: %s\n",err);
 		   } 
 			break;
-		case WAITING_EVENT:
+		case I_WAITING_EVENT:
 			break;
-		case IDLE:
+		case I_IDLE:
 			break;
 	}
-	_DEBUG("END %d %d\n",i->flags,READY);
-	if(i->flags==READY) {
+	_DEBUG("Intance Yielded: %p %d lua_State (%p)\n",i,i->flags,i->L);
+	if(i->flags==I_READY || i->flags==I_IDLE) {
 	   if(i->waiting) {
-	      lua_pushliteral(i->waiting->L,STAGE_HANDLER_KEY);
-			lua_gettable(i->waiting->L,LUA_REGISTRYINDEX);
-	   	i->waiting->flags=READY;
-	   	i->waiting->ev=NULL;
-	      lstage_pushinstance(i->waiting);
+	      instance_t w=i->waiting;
+	   	_DEBUG("instance %p (%p) is waiting %p\n",i->waiting,w,i->waiting->L);
 	      i->waiting=NULL;
+     	   	_DEBUG("instance %p lua_State %p\n",w,w->L);
+     
+   		w->flags=I_READY;
+	   	w->ev=NULL;
+	   	_DEBUG("instance %p lua_State %p\n",w,w->L);
+	      lstage_pushinstance(w);
 	   }
 	   lstage_putinstance(i);
 	}
@@ -195,7 +204,7 @@ static int thread_from_ptr (lua_State *L) {
 }
 
 void lstage_pushinstance(instance_t i) {
-	return lstage_pqueue_push(i->stage->pool->ready,i);
+	return lstage_pqueue_push(i->stage->pool->ready,(void **) &(i));
 }
 
 static const struct luaL_Reg LuaExportFunctions[] = {

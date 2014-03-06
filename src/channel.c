@@ -61,14 +61,14 @@ static int channel_pushevent(lua_State *L) {
    lua_pop(L,1);
    event_t ev=lstage_newevent(str,len);
    instance_t ins=NULL;
-   if(lstage_lfqueue_trypop(c->wait_queue,ins)) {
+   if(lstage_lfqueue_try_pop(c->wait_queue,(void **)&(ins))) {
    	ins->ev=ev;
-		ins->flags=READY;
+		ins->flags=I_READY;
 		lua_settop(ins->L,0);
 		lstage_pushinstance(ins);
 		lua_pushboolean(L,1);
 		return 1;
-   } else if(lstage_lfqueue_trypush(c->event_queue,ev)) {
+   } else if(lstage_lfqueue_try_push(c->event_queue,(void **) &(ev))) {
       lua_pushboolean(L,1);
       return 1;
    } 
@@ -90,13 +90,13 @@ static int channel_getevent(lua_State *L) {
 	if(lstage_lfqueue_try_pop(c->event_queue,(void **)&ev)) {
 		printf("GOT A EVENT %p\n",i);
 		i->ev=ev;
-		i->flags=READY;
+		i->flags=I_READY;
 		lua_settop(L,0);
 		lstage_pushinstance(i);
 		return lua_yield(L,0);
 	}
-	i->flags=WAITING_EVENT;
-	if(!lstage_lfqueue_trypush(c->wait_queue,i)) {		
+	i->flags=I_WAITING_EVENT;
+	if(!lstage_lfqueue_try_push(c->wait_queue,(void **) &(i))) {		
 		return 0;
 	}
 	printf("Yielding to get an event %p\n",i);

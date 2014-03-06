@@ -6,7 +6,7 @@
 #include "pool.h"
 
 enum thread_e {
-	THREAD_IDLE
+	THREAD_I_IDLE
 };
 
 typedef struct thread_s {

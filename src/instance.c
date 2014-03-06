@@ -47,7 +47,7 @@ void lstage_initinstance(instance_t i) {
 	lua_pushliteral(L,LSTAGE_INSTANCE_KEY);
 	lua_pushlightuserdata(L,i);
 	lua_settable(L, LUA_REGISTRYINDEX);	
-	i->flags=READY;
+	i->flags=I_READY;
 }
 
 instance_t lstage_newinstance(stage_t s) {
@@ -55,7 +55,7 @@ instance_t lstage_newinstance(stage_t s) {
 	instance_t i=malloc(sizeof(struct instance_s));
 	i->L=L;
 	i->stage=s;
-	i->flags=CREATED;
+	i->flags=I_CREATED;
 	i->waiting=NULL;
 	i->ev=NULL;
 	lstage_pushinstance(i);
@@ -69,11 +69,12 @@ void lstage_putinstance(instance_t i) {
 	if(lstage_lfqueue_try_pop(i->stage->event_queue,(void **)&ev)) {
 		_DEBUG("HAS event %p\n",i);
 		i->ev=ev;
-		i->flags=READY;
+		i->flags=I_READY;
 		return lstage_pushinstance(i);
 	}
-	i->flags=IDLE;
-	_DEBUG("instance is now IDLE %p (%u)\n",i,lstage_lfqueue_size(i->stage->instances));
+	i->flags=I_IDLE;
+	i->waiting=NULL;
+	_DEBUG("instance is now I_IDLE %p lua_State %p (%u)\n",i,i->L,lstage_lfqueue_size(i->stage->instances));
 	if(!lstage_lfqueue_try_push(i->stage->instances,(void **) &i)) {
 		_DEBUG("Instances FULL, destroying %p\n",i);
 		lstage_destroyinstance(i);

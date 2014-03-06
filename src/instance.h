@@ -12,20 +12,21 @@ typedef struct instance_s * instance_t;
 #define LSTAGE_INSTANCE_KEY "lstage-instance-key"
 
 enum instance_flag_t {
-	CREATED=0x0,
-	IDLE,
-	READY,
-	WAITING_IO,
-	TIMEOUT_IO,
-	WAITING_EVENT,
+	I_CREATED=0x0,
+	I_IDLE,
+	I_READY,
+	I_WAITING_IO,
+	I_TIMEOUT_IO,
+	I_WAITING_EVENT,
+	I_NEW_FUCKIN_STATUS,
 };
 
 struct instance_s {
    lua_State * L;
+   instance_t waiting;
    stage_t stage;
    event_t ev;
-   enum instance_flag_t flags;
-   instance_t waiting;
+   int flags;
    int args;
 };
 
