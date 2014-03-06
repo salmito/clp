@@ -112,7 +112,7 @@ static int stage_call(lua_State *L) {
 		lua_pushboolean(L,1);
 		return lua_yield(L,0);
    } else if(lstage_lfqueue_try_push(s->event_queue,(void **)&(ev))) {
-      lua_pushboolean(L,1);
+   	_DEBUG("Putting event %p\n",ev->waiting);
       self->flags=I_WAITING_EVENT;
       return lua_yield(L,0);
    } 

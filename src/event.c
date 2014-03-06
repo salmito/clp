@@ -96,6 +96,22 @@ static THREAD_RETURN_T THREAD_CALLCONV event_main(void *t_val) {
 	return NULL;
 }
 
+int lstage_restoreevent(lua_State *L,event_t ev) {
+   lua_pushcfunction(L,mar_decode);
+   lua_pushlstring(L,ev->data,ev->len);
+	lua_call(L,1,1);
+   int n=
+	#if LUA_VERSION_NUM < 502
+	luaL_getn(L,2);
+   #else
+	luaL_len(L,2);
+	#endif
+	int j;
+	for(j=1;j<=n;j++) lua_rawgeti(L,2,j);
+	lua_remove(L,2);
+	return n;
+}
+
 LSTAGE_EXPORTAPI	int luaopen_lstage_event(lua_State *L) {
 	const struct luaL_Reg LuaExportFunctions[] = {
 	{"encode",mar_encode},

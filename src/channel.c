@@ -64,7 +64,7 @@ static int channel_pushevent(lua_State *L) {
    if(lstage_lfqueue_try_pop(c->wait_queue,(void **)&(ins))) {
    	ins->ev=ev;
 		ins->flags=I_READY;
-		lua_settop(ins->L,0);
+		//lua_settop(ins->L,0);
 		lstage_pushinstance(ins);
 		lua_pushboolean(L,1);
 		return 1;
@@ -82,19 +82,18 @@ static int channel_pushevent(lua_State *L) {
 static int channel_getevent(lua_State *L) {
 	channel_t c = lstage_tochannel(L,1);
 	event_t ev=NULL;
+	if(lstage_lfqueue_try_pop(c->event_queue,(void **)&ev)) {
+		//printf("GOT A EVENT %p\n",ev);
+		int n=lstage_restoreevent(L,ev);
+		lstage_destroyevent(ev);
+		return n;
+	}
+
 	lua_pushliteral(L,LSTAGE_INSTANCE_KEY);
 	lua_gettable(L, LUA_REGISTRYINDEX);
 	if(lua_type(L,-1)!=LUA_TLIGHTUSERDATA) luaL_error(L,"Cannot wait outside of a stage (yet)");
 	instance_t i=lua_touserdata(L,-1);
 	lua_pop(L,1);
-	if(lstage_lfqueue_try_pop(c->event_queue,(void **)&ev)) {
-		printf("GOT A EVENT %p\n",i);
-		i->ev=ev;
-		i->flags=I_READY;
-		lua_settop(L,0);
-		lstage_pushinstance(i);
-		return lua_yield(L,0);
-	}
 	i->flags=I_WAITING_EVENT;
 	if(!lstage_lfqueue_try_push(c->wait_queue,(void **) &(i))) {		
 		return 0;
