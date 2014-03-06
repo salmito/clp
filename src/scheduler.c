@@ -78,6 +78,7 @@ static void get_metatable(lua_State * L) {
 }
 
 static void thread_resume_instance(instance_t i) {
+	_DEBUG("Resuming instance: %p\n",i);
 	lua_State * L=i->L;
 	switch(i->flags) {
 		case CREATED:
@@ -103,8 +104,6 @@ static void thread_resume_instance(instance_t i) {
 		      fprintf(stderr,"Error resuming instance: %s\n",err);
 		   }
 		   break;
-		case IDLE:
-			break;
 		case READY:
 			if(i->ev) {
 				lua_pushliteral(L,STAGE_HANDLER_KEY);
@@ -137,8 +136,13 @@ static void thread_resume_instance(instance_t i) {
 		      fprintf(stderr,"Error resuming instance: %s\n",err);
 		   } 
 			break;
+		case WAITING_EVENT:
+			break;
+		case IDLE:
+			break;
 	}
-	if(i->flags!=WAITING_IO && i->flags!=TIMEOUT_IO) {
+	_DEBUG("END %d %d\n",i->flags,READY);
+	if(i->flags==READY) {
 	   if(i->waiting) {
 	      lua_pushliteral(i->waiting->L,STAGE_HANDLER_KEY);
 			lua_gettable(i->waiting->L,LUA_REGISTRYINDEX);

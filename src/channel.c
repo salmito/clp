@@ -47,7 +47,6 @@ static int channel_ptr(lua_State * L) {
 
 static int channel_pushevent(lua_State *L) {
 	channel_t c = lstage_tochannel(L,1);
-   
    int top=lua_gettop(L);
    lua_pushcfunction(L,mar_encode);
    lua_newtable(L);
@@ -65,6 +64,7 @@ static int channel_pushevent(lua_State *L) {
    if(lstage_lfqueue_trypop(c->wait_queue,ins)) {
    	ins->ev=ev;
 		ins->flags=READY;
+		lua_settop(ins->L,0);
 		lstage_pushinstance(ins);
 		lua_pushboolean(L,1);
 		return 1;
@@ -79,29 +79,27 @@ static int channel_pushevent(lua_State *L) {
 
 }
 
-
 static int channel_getevent(lua_State *L) {
 	channel_t c = lstage_tochannel(L,1);
 	event_t ev=NULL;
-	
 	lua_pushliteral(L,LSTAGE_INSTANCE_KEY);
 	lua_gettable(L, LUA_REGISTRYINDEX);
 	if(lua_type(L,-1)!=LUA_TLIGHTUSERDATA) luaL_error(L,"Cannot wait outside of a stage (yet)");
 	instance_t i=lua_touserdata(L,-1);
 	lua_pop(L,1);
-	
 	if(lstage_lfqueue_try_pop(c->event_queue,(void **)&ev)) {
+		printf("GOT A EVENT %p\n",i);
 		i->ev=ev;
 		i->flags=READY;
-		int y=lua_yield(L,0);
+		lua_settop(L,0);
 		lstage_pushinstance(i);
-		return y; 
+		return lua_yield(L,0);
 	}
-	
 	i->flags=WAITING_EVENT;
-	if(!lstage_lfqueue_trypush(c->wait_queue,i)) {
+	if(!lstage_lfqueue_trypush(c->wait_queue,i)) {		
 		return 0;
 	}
+	printf("Yielding to get an event %p\n",i);
 	return lua_yield(L,0);
 }
 
@@ -112,7 +110,7 @@ static const struct luaL_Reg ChannelMetaFunctions[] = {
 		{"id",channel_ptr},
 		{"getsize",channel_getsize},
 		{"setsize",channel_setsize},
-		{"get",channel_getevent},
+		{"pop",channel_getevent},
 		{"push",channel_pushevent},
 		{NULL,NULL}
 };
@@ -158,9 +156,6 @@ static int channel_get(lua_State * L) {
 	channel_build(L,s);
 	return 1;
 }
-
-
-
 
 static const struct luaL_Reg LuaExportFunctions[] = {
 		{"new",channel_new},

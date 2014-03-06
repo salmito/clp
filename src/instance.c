@@ -7,6 +7,7 @@
 #include <lualib.h>
 
 void lstage_initinstance(instance_t i) {
+	_DEBUG("Initiating instance %p\n",i);
 	lua_State *L=i->L;
 	lua_pushcfunction(L,luaopen_base);
    lua_pcall(L,0,0,0);
@@ -46,7 +47,7 @@ void lstage_initinstance(instance_t i) {
 	lua_pushliteral(L,LSTAGE_INSTANCE_KEY);
 	lua_pushlightuserdata(L,i);
 	lua_settable(L, LUA_REGISTRYINDEX);	
-	i->flags=IDLE;
+	i->flags=READY;
 }
 
 instance_t lstage_newinstance(stage_t s) {
@@ -63,14 +64,18 @@ instance_t lstage_newinstance(stage_t s) {
 
 void lstage_putinstance(instance_t i) {
 	event_t ev=NULL;
+	_DEBUG("Putting instance %p\n",i);
 		//TODO maybe put a spinlock here
 	if(lstage_lfqueue_try_pop(i->stage->event_queue,(void **)&ev)) {
+		_DEBUG("HAS event %p\n",i);
 		i->ev=ev;
 		i->flags=READY;
 		return lstage_pushinstance(i);
 	}
 	i->flags=IDLE;
+	_DEBUG("instance is now IDLE %p (%u)\n",i,lstage_lfqueue_size(i->stage->instances));
 	if(!lstage_lfqueue_try_push(i->stage->instances,(void **) &i)) {
+		_DEBUG("Instances FULL, destroying %p\n",i);
 		lstage_destroyinstance(i);
 	}
 }
