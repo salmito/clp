@@ -17,6 +17,7 @@ print("stage2",s2)
 	
 local s1=lstage.stage(function() 
 	for i=1,10 do
+			chan:push()
 		chan:push('test',i)
 		--s2:push()
 	end
