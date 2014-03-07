@@ -97,18 +97,21 @@ static THREAD_RETURN_T THREAD_CALLCONV event_main(void *t_val) {
 }
 
 int lstage_restoreevent(lua_State *L,event_t ev) {
+//	stackDump(L,"");
    lua_pushcfunction(L,mar_decode);
    lua_pushlstring(L,ev->data,ev->len);
 	lua_call(L,1,1);
+//	stackDump(L,"");
+	int top=lua_gettop(L);
    int n=
 	#if LUA_VERSION_NUM < 502
-	luaL_getn(L,2);
+	luaL_getn(L,-1);
    #else
-	luaL_len(L,2);
+	luaL_len(L,-1);
 	#endif
 	int j;
-	for(j=1;j<=n;j++) lua_rawgeti(L,2,j);
-	lua_remove(L,2);
+	for(j=1;j<=n;j++) lua_rawgeti(L,top,j);
+	lua_remove(L,top);
 	return n;
 }
 

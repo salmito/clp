@@ -6,6 +6,7 @@ typedef struct instance_s * instance_t;
 #include "lstage.h"
 #include "stage.h"
 #include "event.h"
+#include "channel.h"
 
 #include "lua.h"
 
@@ -18,7 +19,7 @@ enum instance_flag_t {
 	I_WAITING_IO,
 	I_TIMEOUT_IO,
 	I_WAITING_EVENT,
-	I_NEW_FUCKIN_STATUS,
+	I_WAITING_CHANNEL,
 };
 
 struct instance_s {
@@ -28,6 +29,7 @@ struct instance_s {
    event_t ev;
    int flags;
    int args;
+   channel_t channel;
 };
 
 instance_t lstage_newinstance(stage_t s);

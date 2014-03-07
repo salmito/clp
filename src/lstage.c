@@ -158,9 +158,9 @@ LSTAGE_EXPORTAPI int luaopen_lstage(lua_State *L) {
 	} else {
 		lstage_buildpool(L,lstage_defaultpool);
 	}
-	lua_setfield(L,-4,"defaultpool");
-	lua_setfield(L,-3,"pool");
-	lua_pop(L,1);
+	lua_setfield(L,-4,"pool");
+	//lua_setfield(L,-3,"pool");
+	lua_pop(L,2);
 	lstage_require(L,"lstage.event",luaopen_lstage_event);
 	lua_getfield(L,-1,"encode");
 	lua_setfield(L,-3,"encode");
