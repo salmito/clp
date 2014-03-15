@@ -60,6 +60,15 @@ static int channel_pushevent(lua_State *L) {
    const char * str=lua_tolstring(L,-1,&len);
    lua_pop(L,1);
    event_t ev=lstage_newevent(str,len);
+   if(c->waiting>0) {
+	   MUTEX_LOCK(&c->mutex);
+	   c->waiting--;
+   	c->event=ev;
+	   SIGNAL_ONE(&c->cond);
+	   MUTEX_UNLOCK(&c->mutex);
+   	lua_pushboolean(L,1);
+      return 1;
+   }
    instance_t ins=NULL;
    if(lstage_lfqueue_try_pop(c->wait_queue,(void **)&(ins))) {
    	lua_settop(ins->L,0);
@@ -85,12 +94,24 @@ static int channel_getevent(lua_State *L) {
 	event_t ev=NULL;
 	lua_pushliteral(L,LSTAGE_INSTANCE_KEY);
 	lua_gettable(L, LUA_REGISTRYINDEX);
-	if(lua_type(L,-1)!=LUA_TLIGHTUSERDATA) luaL_error(L,"Cannot wait outside of a stage (yet)");
 	if(lstage_lfqueue_try_pop(c->event_queue,(void **)&ev)) {
-
 		int n=lstage_restoreevent(L,ev);
 		//printf("GOT AN EVENT %d %d\n",ev->len,n);
 		lstage_destroyevent(ev);
+		return n;
+	}
+	if(lua_type(L,-1)!=LUA_TLIGHTUSERDATA) {
+		//luaL_error(L,"Cannot wait outside of a stage (yet)");
+		MUTEX_LOCK(&c->mutex);
+		c->waiting++;
+		SIGNAL_WAIT(&c->cond, &c->mutex,-1.0);
+		int n=0;
+		if(c->event) {
+			n=lstage_restoreevent(L,c->event);
+			lstage_destroyevent(c->event);
+			c->event=NULL;
+		}
+		MUTEX_UNLOCK(&c->mutex);
 		return n;
 	}
 	instance_t i=lua_touserdata(L,-1);
@@ -145,6 +166,8 @@ static int channel_new(lua_State *L) {
 	channel_t t=malloc(sizeof(struct channel_s));
 	SIGNAL_INIT(&t->cond);
 	MUTEX_INIT(&t->mutex);
+	t->waiting=0;
+	t->event=NULL;
 	t->event_queue=lstage_lfqueue_new();
 	t->wait_queue=lstage_lfqueue_new();
 	lstage_lfqueue_setcapacity(t->event_queue,-1);
