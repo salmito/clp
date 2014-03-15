@@ -104,7 +104,7 @@ static int channel_getevent(lua_State *L) {
 		//luaL_error(L,"Cannot wait outside of a stage (yet)");
 		MUTEX_LOCK(&c->mutex);
 		c->waiting++;
-		SIGNAL_WAIT(&c->cond, &c->mutex,-1.0);
+		SIGNAL_WAIT(&c->cond,&c->mutex,-1.0);
 		int n=0;
 		if(c->event) {
 			n=lstage_restoreevent(L,c->event);
@@ -164,13 +164,14 @@ static void channel_build(lua_State * L,channel_t t) {
 
 static int channel_new(lua_State *L) {
 	channel_t t=malloc(sizeof(struct channel_s));
+	int size=luaL_optint(L, 1, -1);
 	SIGNAL_INIT(&t->cond);
 	MUTEX_INIT(&t->mutex);
 	t->waiting=0;
 	t->event=NULL;
 	t->event_queue=lstage_lfqueue_new();
 	t->wait_queue=lstage_lfqueue_new();
-	lstage_lfqueue_setcapacity(t->event_queue,-1);
+	lstage_lfqueue_setcapacity(t->event_queue,size);
 	lstage_lfqueue_setcapacity(t->wait_queue,-1);
 	channel_build(L,t);
    return 1;

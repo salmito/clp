@@ -1,37 +1,34 @@
 local lstage=require'lstage'
-local channel=require'lstage.channel'
 
+local s1,s2,s3=lstage.stage(),lstage.stage(),lstage.stage()
+print('init',lstage.pool:size())
+lstage.pool:kill()
+print('init',lstage.pool:size())
 lstage.pool:add()
-lstage.pool:add()
-lstage.pool:add()
+print('init',lstage.pool:size())
 
-print(lstage.pool:size())
+local chan=lstage.channel()
+local chan2=lstage.channel()
 
-local n=1000000
+local function p(name)
+  print('entering',name)
+  while true do
+    local t={chan:pop()}
+    print(name,'received',unpack(t))
+    if #t==0 then break end
+  end
+  chan2:push('finished')
+end
 
-local chan=channel.new()
+s1:wrap(function()
+  local i=0
+  while i<10 do
+    chan:push('event',i)
+    i=i+1
+  end  
+  chan:push()
+end)()
 
-local s2=lstage.stage(function()
-	i=(i or 0)+1
-	local init=lstage.now()
-	while true do
---		print('waiting')
-		local c,t=chan:pop()
-		--print('chan',i,c,t)
-		if t==n then
-			print(lstage.now()-init)
-		end
-		i=i+1
-	end
-end,4):push():push():push():push()
-print("stage2",s2)
---s2:push()
-	
-local s1=lstage.stage(function() 
-	for i=1,n do
-		chan:push('test',i,"TTTT")
-	end
-end)
-lstage.event.sleep(1)
-s1:push()
-lstage.event.sleep(100)
+s3:wrap(p)('stage3')
+s2:wrap(p)('stage2')
+print('end',chan2:pop())

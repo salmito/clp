@@ -93,7 +93,9 @@ enum e_status { PENDING, RUNNING, WAITING, DONE, ERROR_ST, CANCELLED };
 
   #ifdef PLATFORM_LINUX
 
-  #define __USE_GNU
+	#ifndef __USE_GNU
+	  #define __USE_GNU
+  #endif
   #include <pthread.h>
   //#include <sched.h>
 

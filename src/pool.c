@@ -34,9 +34,13 @@ static int pool_ptr(lua_State * L) {
 
 static int pool_addthread(lua_State * L) {
 	pool_t s=lstage_topool(L, 1);
-	(void)lstage_newthread(L,s);
-	_DEBUG("pool_addthread pool:%p adding:%p\n",s,*th);
-	s->size+=1;
+	int size=luaL_optint(L, 2, 1);
+	int i;
+	for(i=0;i<size;i++) {
+		(void)lstage_newthread(L,s);
+		_DEBUG("pool_addthread pool:%p adding:%p\n",s,*th);
+	}
+	s->size+=size;
 	return 1;
 }
 

@@ -31,7 +31,12 @@ Pqueue_t lstage_pqueue_new() {
 
 void lstage_pqueue_push(Pqueue_t q,void ** source) {
 	instance_t p;
-   p=(instance_t)(*source);
+	instance_t * arg=(instance_t *)(source);
+	if(arg==NULL){
+		p=NULL;
+	} else {
+   	p=*arg;
+   }
 //	pthread_mutex_lock(&q->mutex);
 	int size=lstage_pqueue_size(q);
 	q->queue->push(p);

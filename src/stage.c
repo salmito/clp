@@ -56,6 +56,7 @@ static int stage_eq(lua_State * L) {
 	return 1;
 }
 
+static int stage_instantiate(lua_State * L);
 
 static int stage_wrap(lua_State * L) {
 	stage_t s=lstage_tostage(L,1);
@@ -75,10 +76,17 @@ static int stage_wrap(lua_State * L) {
    s->env=envcp;
    s->env_len=len;
    lua_pop(L,1);
-	return 0;
+   
+   lua_pushcfunction(L,stage_instantiate);
+   lua_pushvalue(L,1);
+   lua_pushnumber(L,1);
+   lua_call(L,2,0);
+   
+   lua_pushvalue(L,1);
+	return 1;
 }
 
-static int stage_call(lua_State *L) {
+/*static int stage_call(lua_State *L) {
    lua_pushliteral(L,LSTAGE_INSTANCE_KEY);
 	lua_gettable(L, LUA_REGISTRYINDEX);
 	if(lua_type(L,-1)!=LUA_TLIGHTUSERDATA) {
@@ -120,7 +128,7 @@ static int stage_call(lua_State *L) {
    lua_pushnil(L);
    lua_pushliteral(L,"Event queue is full");
    return 2;
-}
+}*/
 
 static int stage_push(lua_State *L) {
    stage_t s=lstage_tostage(L,1);
@@ -272,6 +280,7 @@ static int stage_getparent(lua_State * L) {
 static const struct luaL_Reg StageMetaFunctions[] = {
 		{"__eq",stage_eq},
 		{"__tostring",stage_tostring},
+		{"__call",stage_push},
 		{"instances",get_max_instances},
 		{"getcapacity",get_queue_capacity},
 		{"setcapacity",set_queue_capacity},
@@ -288,7 +297,7 @@ static const struct luaL_Reg StageMetaFunctions[] = {
 		{"setpool",stage_setpool},
 		{"getpriority",stage_getpriority},
 		{"setpriority",stage_setpriority},
-		{"call",stage_call},
+//		{"call",stage_call},
 		{NULL,NULL}
 };
 

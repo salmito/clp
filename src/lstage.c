@@ -132,6 +132,7 @@ LSTAGE_EXPORTAPI int luaopen_lstage_event(lua_State *L);
 LSTAGE_EXPORTAPI int luaopen_lstage_scheduler(lua_State *L);
 LSTAGE_EXPORTAPI int luaopen_lstage_stage(lua_State *L);
 LSTAGE_EXPORTAPI int luaopen_lstage_pool(lua_State *L);
+LSTAGE_EXPORTAPI int luaopen_lstage_channel(lua_State *L);
 
 static const struct luaL_Reg LuaExportFunctions[] = {
 	{"_VERSION",lstage_version},
@@ -169,6 +170,10 @@ LSTAGE_EXPORTAPI int luaopen_lstage(lua_State *L) {
 	lua_setfield(L,-2,"event");
 	lstage_require(L,"lstage.scheduler",luaopen_lstage_scheduler);
 	lua_setfield(L,-2,"scheduler");
+	lstage_require(L,"lstage.channel",luaopen_lstage_channel);
+	lua_getfield(L,-1,"new");
+	lua_setfield(L,-3,"channel");
+	lua_pop(L,1);
 	lstage_require(L,"lstage.stage",luaopen_lstage_stage);
 	lua_getfield(L,-1,"new");
 	lua_setfield(L,-3,"stage");
