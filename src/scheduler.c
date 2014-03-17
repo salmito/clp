@@ -112,9 +112,6 @@ static void thread_resume_instance(instance_t i) {
 		      lua_pushcfunction(L,mar_decode);
 		      lua_pushlstring(L,i->ev->data,i->ev->len);
 		      
-            if(i->ev->waiting) {
-            	i->waiting=i->ev->waiting;
-            }
 		      lstage_destroyevent(i->ev);
   		      i->ev=NULL;
 				if(lua_pcall(L,1,1,0)) {
@@ -157,17 +154,6 @@ static void thread_resume_instance(instance_t i) {
 	}
 
 	else if(i->flags==I_READY || i->flags==I_IDLE) {
-	   if(i->waiting) {
-	      instance_t w=i->waiting;
-	   	_DEBUG("instance %p (%p) is waiting %p\n",i->waiting,w,i->waiting->L);
-	      i->waiting=NULL;
-     	   	_DEBUG("instance %p lua_State %p\n",w,w->L);
-     
-   		w->flags=I_READY;
-	   	w->ev=NULL;
-	   	_DEBUG("instance %p lua_State %p\n",w,w->L);
-	      lstage_pushinstance(w);
-	   }
 	   lstage_putinstance(i);
 	}
 }

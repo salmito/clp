@@ -13,7 +13,7 @@ local chan2=lstage.channel()
 local function p(name)
   print('entering',name)
   while true do
-    local t={chan:pop()}
+    local t={chan:get()}
     print(name,'received',unpack(t))
     if #t==0 then break end
   end
@@ -31,4 +31,4 @@ end)()
 
 s3:wrap(p)('stage3')
 s2:wrap(p)('stage2')
-print('end',chan2:pop())
+print('end',chan2:get())

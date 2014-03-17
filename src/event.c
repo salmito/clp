@@ -17,7 +17,6 @@ static struct event_base *loop;
 event_t lstage_newevent(const char * ev, size_t len) {
    event_t e=malloc(sizeof(struct event_s));
    e->data=malloc(len);
-   e->waiting=NULL;
    memcpy(e->data,ev,len);
    e->len=len;
    return e;

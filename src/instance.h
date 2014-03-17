@@ -24,7 +24,6 @@ enum instance_flag_t {
 
 struct instance_s {
    lua_State * L;
-   instance_t waiting;
    stage_t stage;
    event_t ev;
    int flags;

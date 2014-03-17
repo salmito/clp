@@ -131,9 +131,9 @@ static const struct luaL_Reg ChannelMetaFunctions[] = {
 		{"__eq",channel_eq},
 		{"__tostring",channel_tostring},
 		{"id",channel_ptr},
-		{"getsize",channel_getsize},
+		{"size",channel_getsize},
 		{"setsize",channel_setsize},
-		{"pop",channel_getevent},
+		{"get",channel_getevent},
 		{"push",channel_pushevent},
 		{NULL,NULL}
 };
