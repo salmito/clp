@@ -14,7 +14,7 @@ local function p(name)
   print('entering',name)
   while true do
     local t={chan:get()}
-    print(name,'received',unpack(t))
+    print(name,'received',(require'table'.unpack or unpack)(t))
     if #t==0 then break end
   end
   chan2:push('finished')
