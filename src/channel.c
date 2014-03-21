@@ -73,8 +73,8 @@ static int channel_pushevent(lua_State *L) {
    if(lstage_lfqueue_try_pop(c->wait_queue,(void **)&(ins))) {
    	lua_settop(ins->L,0);
    	ins->ev=ev;
+   	ins->channel=NULL;
 		ins->flags=I_READY;
-		//lua_settop(ins->L,0);
 		lstage_pushinstance(ins);
 		lua_pushboolean(L,1);
 		return 1;
@@ -86,7 +86,18 @@ static int channel_pushevent(lua_State *L) {
    lua_pushnil(L);
    lua_pushliteral(L,"Event queue is full");
    return 2;
+}
 
+static int channel_tryget(lua_State *L) {
+   channel_t c = lstage_tochannel(L,1);
+	event_t ev=NULL;
+   if(lstage_lfqueue_try_pop(c->event_queue,(void **)&ev)) {
+      lua_pushboolean(L,1);
+		int n=lstage_restoreevent(L,ev);
+		lstage_destroyevent(ev);
+		return n+1;
+	}
+	return 0;
 }
 
 static int channel_getevent(lua_State *L) {
@@ -96,12 +107,10 @@ static int channel_getevent(lua_State *L) {
 	lua_gettable(L, LUA_REGISTRYINDEX);
 	if(lstage_lfqueue_try_pop(c->event_queue,(void **)&ev)) {
 		int n=lstage_restoreevent(L,ev);
-		//printf("GOT AN EVENT %d %d\n",ev->len,n);
 		lstage_destroyevent(ev);
 		return n;
 	}
 	if(lua_type(L,-1)!=LUA_TLIGHTUSERDATA) {
-		//luaL_error(L,"Cannot wait outside of a stage (yet)");
 		MUTEX_LOCK(&c->mutex);
 		c->waiting++;
 		SIGNAL_WAIT(&c->cond,&c->mutex,-1.0);
@@ -119,11 +128,6 @@ static int channel_getevent(lua_State *L) {
 	i->flags=I_WAITING_CHANNEL;
 	i->channel=c;
 	return lua_yield(L,0);
-	/*if(!lstage_lfqueue_try_push(c->wait_queue,(void **) &(i))) {		
-		return 0;
-	}
-	//printf("Yielding to get an event %p\n",i);
-	return ret;*/
 }
 
 
@@ -135,6 +139,7 @@ static const struct luaL_Reg ChannelMetaFunctions[] = {
 		{"setsize",channel_setsize},
 		{"get",channel_getevent},
 		{"push",channel_pushevent},
+		{"tryget",channel_tryget},
 		{NULL,NULL}
 };
 
@@ -190,7 +195,6 @@ static const struct luaL_Reg LuaExportFunctions[] = {
 };
 
 LSTAGE_EXPORTAPI	int luaopen_lstage_channel(lua_State *L) {
-//	if(!H) H=qt_hash_create();
 	lua_newtable(L);
 	lua_newtable(L);
 	luaL_loadstring(L,"return function() return require'lstage.channel' end");
