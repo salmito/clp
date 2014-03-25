@@ -10,7 +10,6 @@ local function add_timer(time,f)
 	end):push()
 end
 
-local id=1
 function handler(id) return function()
 		thn=thn or lstage.now()
 		print(require'string'.format("id %d slept for %.6f",id,lstage.now()-thn))
