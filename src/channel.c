@@ -70,7 +70,7 @@ static int channel_pushevent(lua_State *L) {
       return 1;
    }
    instance_t ins=NULL;
-   if(lstage_lfqueue_try_pop(c->wait_queue,(void **)&(ins))) {
+   if(lstage_lfqueue_try_pop(c->wait_queue,&ins)) {
    	lua_settop(ins->L,0);
    	ins->ev=ev;
 		ins->flags=I_READY;
@@ -78,7 +78,7 @@ static int channel_pushevent(lua_State *L) {
 		lstage_pushinstance(ins);
 		lua_pushboolean(L,1);
 		return 1;
-   } else if(lstage_lfqueue_try_push(c->event_queue,(void **) &(ev))) {
+   } else if(lstage_lfqueue_try_push(c->event_queue,&ev)) {
       lua_pushboolean(L,1);
       return 1;
    } 
@@ -94,7 +94,7 @@ static int channel_getevent(lua_State *L) {
 	event_t ev=NULL;
 	lua_pushliteral(L,LSTAGE_INSTANCE_KEY);
 	lua_gettable(L, LUA_REGISTRYINDEX);
-	if(lstage_lfqueue_try_pop(c->event_queue,(void **)&ev)) {
+	if(lstage_lfqueue_try_pop(c->event_queue,&ev)) {
 		int n=lstage_restoreevent(L,ev);
 		//printf("GOT AN EVENT %d %d\n",ev->len,n);
 		lstage_destroyevent(ev);
@@ -119,11 +119,6 @@ static int channel_getevent(lua_State *L) {
 	i->flags=I_WAITING_CHANNEL;
 	i->channel=c;
 	return lua_yield(L,0);
-	/*if(!lstage_lfqueue_try_push(c->wait_queue,(void **) &(i))) {		
-		return 0;
-	}
-	//printf("Yielding to get an event %p\n",i);
-	return ret;*/
 }
 
 

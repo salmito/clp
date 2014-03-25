@@ -102,13 +102,13 @@ static int stage_push(lua_State *L) {
    lua_pop(L,1);
    event_t ev=lstage_newevent(str,len);
    instance_t ins=NULL;
-   if(lstage_lfqueue_try_pop(s->instances,(void **) &(ins))) {
+   if(lstage_lfqueue_try_pop(s->instances,&ins)) {
    	ins->ev=ev;
 		ins->flags=I_READY;
 		lstage_pushinstance(ins);
 		lua_pushvalue(L,1);
 		return 1;
-   } else if(lstage_lfqueue_try_push(s->event_queue,(void **) &(ev))) {
+   } else if(lstage_lfqueue_try_push(s->event_queue,&ev)) {
       lua_pushvalue(L,1);
       return 1;
    } 
@@ -141,16 +141,27 @@ static int stage_destroyinstances(lua_State * L) {
 	stage_t s = lstage_tostage(L, 1);
 	int n=lua_tointeger(L,2);
 	int i;
+	instance_t in;
 	if(n<=0) luaL_error(L,"Argument must be grater than zero");
-	/* TODO warning thread_unsafe, mutex needed (or use it in only one thread) */
-	if(lstage_lfqueue_getcapacity(s->instances)-n<0)
+	/* TODO warning thread_unsafe, mutex needed (use it serially for now) */
+	if(lstage_lfqueue_getcapacity(s->instances)<0) {
+		int cur=0;
+			while(!lstage_lfqueue_try_pop(s->instances,&in)) {
+				lstage_destroyinstance(in); //should not longjmp
+				cur++;
+			}
+			lua_pushinteger(L,cur);
+			return 1;
+	}
+	else if(lstage_lfqueue_getcapacity(s->instances)==0)
 		luaL_error(L,"Cannot destroy this number of instances");
 	for(i=0;i<n;i++) {
-		instance_t i;
-		if(!lstage_lfqueue_try_pop(s->instances,(void **) &(i))) break;
-		lstage_destroyinstance(i); //should not longjmp
+		if(!lstage_lfqueue_try_pop(s->instances,&in)) break;
+		lstage_destroyinstance(in); //should not longjmp
 	}
-	lstage_lfqueue_setcapacity(s->instances,lstage_lfqueue_getcapacity(s->instances)-i);
+	if(lstage_lfqueue_getcapacity(s->instances)>0) 
+		lstage_lfqueue_setcapacity(s->instances,lstage_lfqueue_getcapacity(s->instances)-i);
+
 	/*unlock mutex */
 	lua_pushnumber(L,i);
 	return 1;
@@ -164,12 +175,14 @@ static int stage_instantiate(lua_State * L) {
 	int i;
 	if(n<=0) luaL_error(L,"Argument must be grater than zero");
 	/*TODO warning thread_unsafe, mutex needed (or use it in only one thread)*/
-	lstage_lfqueue_setcapacity(s->instances,lstage_lfqueue_getcapacity(s->instances)+n);
+	if(lstage_lfqueue_getcapacity(s->instances)>=0) 
+		lstage_lfqueue_setcapacity(s->instances,lstage_lfqueue_getcapacity(s->instances)+n);
 	for(i=0;i<n;i++) {
 		(void)lstage_newinstance(s);
 	}
 	/*unlock mutex */
-	return 0;
+	lua_pushvalue(L,1);
+	return 1;
 }
 
 static int stage_ptr(lua_State * L) {
@@ -205,7 +218,8 @@ static int stage_setpriority(lua_State * L) {
 	stage_t s = lstage_tostage(L, 1);
 	int p=lua_tointeger(L,2);
 	s->priority=p;
-	return 0;
+	lua_pushvalue(L,1);
+	return 1;
 }
 
 static int stage_getpriority(lua_State * L) {
@@ -240,7 +254,7 @@ static const struct luaL_Reg StageMetaFunctions[] = {
 		{"free",stage_destroyinstances},
 		{"ptr",stage_ptr},
 		{"parent",stage_getparent},
-		{"getpool",stage_getpool},
+		{"pool",stage_getpool},
 		{"setpool",stage_setpool},
 		{"priority",stage_getpriority},
 		{"setpriority",stage_setpriority},
@@ -252,11 +266,7 @@ static void get_metatable(lua_State * L) {
    if(lua_isnil(L,-1)) {
    	lua_pop(L,1);
   		luaL_newmetatable(L,LSTAGE_STAGE_METATABLE);
-  		#if LUA_VERSION_NUM < 502
-			luaL_register(L, NULL, StageMetaFunctions);
-		#else
-			luaL_setfuncs(L, StageMetaFunctions, 0);
-		#endif 
+		LUA_REGISTER(L, StageMetaFunctions);
   		lua_pushvalue(L,-1);
   		lua_setfield(L,-2,"__index");
 		luaL_loadstring(L,"local ptr=(...):ptr() return function() return require'lstage.stage'.get(ptr) end");
@@ -305,7 +315,8 @@ static int lstage_newstage(lua_State * L) {
 	   stage=lua_newuserdata(L,sizeof(stage_t *));
 	   (*stage)=calloc(1,sizeof(struct lstage_Stage));   
 	   (*stage)->instances=lstage_lfqueue_new();
-	   lstage_lfqueue_setcapacity((*stage)->instances,0);
+	   /*if(idle<0) lstage_lfqueue_setcapacity((*stage)->instances,-1);
+	   else */lstage_lfqueue_setcapacity((*stage)->instances,0);
 	   (*stage)->event_queue=lstage_lfqueue_new();
 	   lstage_lfqueue_setcapacity((*stage)->event_queue,capacity);
 	   char *envcp=malloc(len+1);
@@ -323,7 +334,7 @@ static int lstage_newstage(lua_State * L) {
 	   lua_pushvalue(L,-2);
 	   lua_pushnumber(L,idle);
 	   lua_call(L,2,0);
-   }
+   } 
    (*stage)->parent=NULL;
    lua_pushliteral(L,LSTAGE_INSTANCE_KEY);
    lua_gettable(L, LUA_REGISTRYINDEX);	
@@ -343,11 +354,11 @@ static int lstage_destroystage(lua_State * L) {
 	if(s->env!=NULL)
 		free(s->env);
 	instance_t i=NULL;
-	while(lstage_lfqueue_try_pop(s->instances,(void **)&i)) 
+	while(lstage_lfqueue_try_pop(s->instances,&i)) 
 		lstage_destroyinstance(i);
 	lstage_lfqueue_free(s->instances);
 	event_t e;
-	while(lstage_lfqueue_try_pop(s->event_queue,(void **)&e)) 
+	while(lstage_lfqueue_try_pop(s->event_queue,&e)) 
 		lstage_destroyevent(e);
 	lstage_lfqueue_free(s->event_queue);
 	*s_ptr=0;

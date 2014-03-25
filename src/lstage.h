@@ -38,4 +38,10 @@ void tableDump(lua_State *L, int idx, const char* text);
 #define LSTAGE_POOL_METATABLE "lstage-Pool *"
 #define LSTAGE_THREAD_METATABLE "lstage-Thread *"
 #define LSTAGE_CHANNEL_METATABLE "lstage-Channel *"
+#if LUA_VERSION_NUM < 502
+	#define LUA_REGISTER(L,f) luaL_register(L, NULL, f)
+#else
+	#define LUA_REGISTER(L,f) luaL_setfuncs(L, f, 0)
+#endif 
+
 #endif

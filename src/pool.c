@@ -3,6 +3,9 @@
 #include "pool.h"
 #include "scheduler.h"
 
+#define LOCK(q) while (__sync_lock_test_and_set(&(q)->lock,1)) {}
+#define UNLOCK(q) __sync_lock_release(&(q)->lock);
+
 #define DEFAULT_QUEUE_CAPACITY -1
 
 static void get_metatable(lua_State * L);
@@ -37,11 +40,11 @@ static int pool_addthread(lua_State * L) {
 	int size=luaL_optint(L, 2, 1);
 	int i;
 	for(i=0;i<size;i++) {
-		(void)lstage_newthread(L,s);
+		lstage_newthread(L,s);
 		_DEBUG("pool_addthread pool:%p adding:%p\n",s,*th);
 	}
 	s->size+=size;
-	return 1;
+	return size;
 }
 
 static int pool_size(lua_State * L) {

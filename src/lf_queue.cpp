@@ -3,11 +3,15 @@
 #include <tbb/concurrent_queue.h>
 #include <stdlib.h>
 
+#define LOCK(q) while (__sync_lock_test_and_set(&(q)->lock,1)) {}
+#define UNLOCK(q) __sync_lock_release(&(q)->lock);
+
 typedef void * __ptr;
 
 /* Queue internal structure (Lock Free Queue) */
 struct LFqueue {
    tbb::concurrent_bounded_queue<__ptr> * queue;
+   int lock;
 };
 
 extern "C" {
@@ -17,6 +21,8 @@ extern "C" {
 LFqueue_t lstage_lfqueue_new() {
    LFqueue_t q;
    q=new LFqueue();
+   q->lock=0;
+   LOCK(q);
    q->queue=new tbb::concurrent_bounded_queue<__ptr>();
    return q;
 }
@@ -27,13 +33,13 @@ void lstage_lfqueue_push(LFqueue_t q,void ** source) {
    q->queue->push(p);
 }
 
-int lstage_lfqueue_try_push(LFqueue_t q,void ** source) {
+int lstage_lfqueue_try_push_(LFqueue_t q,void ** source) {
 	__ptr p;
    p=*source;
    return q->queue->try_push(p);
 }
 
-int lstage_lfqueue_try_pop(LFqueue_t q, void ** destination) {
+int lstage_lfqueue_try_pop_(LFqueue_t q, void ** destination) {
    __ptr dest;
    if(q->queue->try_pop(dest)) {
       *destination = dest;

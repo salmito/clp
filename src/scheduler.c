@@ -42,6 +42,12 @@ static int thread_rawkill (lua_State *L) {
    return 0;
 }
 
+static int thread_state (lua_State *L) {
+   thread_t t=lstage_tothread(L,1);
+   lua_pushnumber(L,t->state);
+   return 1;
+}
+
 static int thread_ptr (lua_State *L) {
 	thread_t t=lstage_tothread(L,1);
 	lua_pushlightuserdata(L,t);
@@ -55,6 +61,16 @@ static int thread_eq(lua_State * L) {
 	return 1;
 }
 
+static const struct luaL_Reg StageMetaFunctions[] = {
+		{"__tostring",thread_tostring},
+		{"__eq",thread_eq},
+		{"join",thread_join},
+		{"__ptr",thread_ptr},
+		{"state",thread_state},
+		{"rawkill",thread_rawkill},
+		{NULL,NULL}
+};
+
 static void get_metatable(lua_State * L) {
 	luaL_getmetatable(L,LSTAGE_THREAD_METATABLE);
    if(lua_isnil(L,-1)) {
@@ -62,16 +78,7 @@ static void get_metatable(lua_State * L) {
   		luaL_newmetatable(L,LSTAGE_THREAD_METATABLE);
   		lua_pushvalue(L,-1);
   		lua_setfield(L,-2,"__index");
-		lua_pushcfunction (L, thread_tostring);
-		lua_setfield (L, -2,"__tostring");
-		lua_pushcfunction (L, thread_eq);
-		lua_setfield (L, -2,"__eq");
-		lua_pushcfunction(L,thread_join);
-		lua_setfield (L, -2,"join");
-		lua_pushcfunction(L,thread_ptr);
-		lua_setfield (L, -2,"ptr");
-		lua_pushcfunction(L,thread_rawkill);
-		lua_setfield (L, -2,"rawkill");
+		LUA_REGISTER(L,StageMetaFunctions);
 		luaL_loadstring(L,"local th=(...):ptr() return function() return require'lstage.scheduler'.build(th) end");
 		lua_setfield (L, -2,"__wrap");
   	}
@@ -149,7 +156,7 @@ static void thread_resume_instance(instance_t i) {
 	_DEBUG("Instance Yielded: %p %d lua_State (%p)\n",i,i->flags,i->L);
 	if(i->flags==I_WAITING_CHANNEL) {
 		//lua_settop(i->L,0);
-		lstage_lfqueue_try_push(i->channel->wait_queue,(void **) &(i));
+		lstage_lfqueue_try_push(i->channel->wait_queue,&i);
 		return;
 	}
 
@@ -164,27 +171,31 @@ static THREAD_RETURN_T THREAD_CALLCONV thread_mainloop(void *t_val) {
    thread_t self=(thread_t)t_val;
    while(1) {
    	_DEBUG("Thread %p wating for ready instaces\n",self);
+   	self->state=THREAD_IDLE;
       lstage_pqueue_pop(self->pool->ready,&i);
       if(i==NULL) break;
      	_DEBUG("Thread %p got a ready instace %p\n",self,i);
+     	self->state=THREAD_RUNNING;
       thread_resume_instance(i);
    }
+   self->state=THREAD_DESTROYED;
   	_DEBUG("Thread %p quitting\n",self);
   	self->pool->size--; //TODO atomic
    return t_val;
 }
 
-thread_t * lstage_newthread(lua_State *L,pool_t pool) {
+int lstage_newthread(lua_State *L,pool_t pool) {
 	_DEBUG("Creating new thread for pool %p\n",pool);
 	thread_t * thread=lua_newuserdata(L,sizeof(thread_t));
 	thread_t t=malloc(sizeof(struct thread_s));
 	t->th=calloc(1,sizeof(THREAD_T));
 	t->pool=pool;
+	t->state=THREAD_IDLE;
 	*thread=t;
    get_metatable(L);
    lua_setmetatable(L,-2);
    THREAD_CREATE(t->th, thread_mainloop, t, 0 );
-   return thread;
+   return 1;
 }
 
 static int thread_from_ptr (lua_State *L) {

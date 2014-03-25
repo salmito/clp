@@ -73,6 +73,18 @@ static int lstage_gettime(lua_State * L) {
    return 1;
 }
 
+
+static int lstage_getself(lua_State *L) {
+	lua_pushliteral(L,LSTAGE_INSTANCE_KEY);
+	lua_gettable(L, LUA_REGISTRYINDEX);	
+	if(!lua_isnil(L,-1)) {
+		instance_t i=lua_touserdata(L,-1);
+		lua_pop(L,1);
+		lstage_buildstage(L,i->stage);
+	}
+	return 1;
+}
+
 static int get_cpus() {
    #ifdef _WIN32
       #ifndef _SC_NPROCESSORS_ONLN
@@ -140,6 +152,7 @@ static const struct luaL_Reg LuaExportFunctions[] = {
 	{"cpus",lstage_cpus},
 	{"getmetatable",lstage_getmetatable},
 	{"setmetatable",lstage_setmetatable},
+	{"self",lstage_getself},
 	{NULL,NULL}
 	};
 

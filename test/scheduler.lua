@@ -16,9 +16,9 @@ end
 local stage1=s.new()
 local stage2=s.new()
 
-print("Created stage",stage1,stage1:getpool(),stage1:getenv())
+print("Created stage",stage1,stage1:pool(),stage1:getenv())
 --stage:setpool(pool)
-print("Set pool of stage",stage1,stage1:getpool())
+print("Set pool of stage",stage1,stage1:pool())
 
 stage1:wrap(function(str) 
 	e.sleep(0.5)
