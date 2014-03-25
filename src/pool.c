@@ -3,9 +3,6 @@
 #include "pool.h"
 #include "scheduler.h"
 
-#define LOCK(q) while (__sync_lock_test_and_set(&(q)->lock,1)) {}
-#define UNLOCK(q) __sync_lock_release(&(q)->lock);
-
 #define DEFAULT_QUEUE_CAPACITY -1
 
 static void get_metatable(lua_State * L);

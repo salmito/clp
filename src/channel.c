@@ -5,6 +5,9 @@
 #include "marshal.h"
 #include <stdlib.h>
 
+#define LOCK(q) while (__sync_lock_test_and_set(&(q)->lock,1)) {}
+#define UNLOCK(q) __sync_lock_release(&(q)->lock);
+
 channel_t lstage_tochannel(lua_State *L, int i) {
 	channel_t * t = luaL_checkudata (L, i, LSTAGE_CHANNEL_METATABLE);
 	luaL_argcheck (L, *t != NULL, i, "not a Channel");
@@ -60,7 +63,9 @@ static int channel_pushevent(lua_State *L) {
    const char * str=lua_tolstring(L,-1,&len);
    lua_pop(L,1);
    event_t ev=lstage_newevent(str,len);
+   LOCK(c);
    if(c->waiting>0) {
+  	   UNLOCK(c);
 	   MUTEX_LOCK(&c->mutex);
 	   c->waiting--;
    	c->event=ev;
@@ -71,6 +76,7 @@ static int channel_pushevent(lua_State *L) {
    }
    instance_t ins=NULL;
    if(lstage_lfqueue_try_pop(c->wait_queue,&ins)) {
+  		UNLOCK(c);
    	lua_settop(ins->L,0);
    	ins->ev=ev;
    	ins->channel=NULL;
@@ -79,9 +85,11 @@ static int channel_pushevent(lua_State *L) {
 		lua_pushboolean(L,1);
 		return 1;
    } else if(lstage_lfqueue_try_push(c->event_queue,&ev)) {
+	   UNLOCK(c);
       lua_pushboolean(L,1);
       return 1;
    } 
+   UNLOCK(c);
    lstage_destroyevent(ev);
    lua_pushnil(L);
    lua_pushliteral(L,"Event queue is full");
@@ -174,6 +182,7 @@ static int channel_new(lua_State *L) {
 	MUTEX_INIT(&t->mutex);
 	t->waiting=0;
 	t->event=NULL;
+	t->lock=0;
 	t->event_queue=lstage_lfqueue_new();
 	t->wait_queue=lstage_lfqueue_new();
 	lstage_lfqueue_setcapacity(t->event_queue,size);
