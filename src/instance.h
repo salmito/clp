@@ -28,7 +28,6 @@ struct instance_s {
    event_t ev;
    int flags;
    int args;
-   channel_t channel;
 };
 
 instance_t lstage_newinstance(stage_t s);

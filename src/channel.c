@@ -79,7 +79,6 @@ static int channel_pushevent(lua_State *L) {
   		UNLOCK(c);
    	lua_settop(ins->L,0);
    	ins->ev=ev;
-   	ins->channel=NULL;
 		ins->flags=I_READY;
 		lstage_pushinstance(ins);
 		lua_pushboolean(L,1);
@@ -113,13 +112,16 @@ static int channel_getevent(lua_State *L) {
 	event_t ev=NULL;
 	lua_pushliteral(L,LSTAGE_INSTANCE_KEY);
 	lua_gettable(L, LUA_REGISTRYINDEX);
+   LOCK(c);
 	if(lstage_lfqueue_try_pop(c->event_queue,&ev)) {
+  		UNLOCK(c);
 		int n=lstage_restoreevent(L,ev);
 		lstage_destroyevent(ev);
 		return n;
 	}
 	if(lua_type(L,-1)!=LUA_TLIGHTUSERDATA) {
 		MUTEX_LOCK(&c->mutex);
+  		UNLOCK(c);
 		c->waiting++;
 		SIGNAL_WAIT(&c->cond,&c->mutex,-1.0);
 		int n=0;
@@ -134,7 +136,9 @@ static int channel_getevent(lua_State *L) {
 	instance_t i=lua_touserdata(L,-1);
 	lua_pop(L,1);
 	i->flags=I_WAITING_CHANNEL;
-	i->channel=c;
+//	i->channel=c;
+	lstage_lfqueue_try_push(c->wait_queue,&i);
+	UNLOCK(c);
 	return lua_yield(L,0);
 }
 

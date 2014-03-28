@@ -154,13 +154,7 @@ static void thread_resume_instance(instance_t i) {
 			break;
 	}
 	_DEBUG("Instance Yielded: %p %d lua_State (%p)\n",i,i->flags,i->L);
-	if(i->flags==I_WAITING_CHANNEL) {
-		//lua_settop(i->L,0);
-		lstage_lfqueue_try_push(i->channel->wait_queue,&i);
-		return;
-	}
-
-	else if(i->flags==I_READY || i->flags==I_IDLE) {
+	if(i->flags==I_READY || i->flags==I_IDLE) {
 	   lstage_putinstance(i);
 	}
 }
