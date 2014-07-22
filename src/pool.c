@@ -31,16 +31,24 @@ static int pool_ptr(lua_State * L) {
 	lua_pushlightuserdata(L,*s);
 	return 1;
 }
-
+static int pool_join(lua_State * L) {
+	pool_t p=lstage_topool(L, 1);
+	p->size++;
+	(void)lstage_joinpool(L,p);
+	return 1;
+}
 static int pool_addthread(lua_State * L) {
 	pool_t s=lstage_topool(L, 1);
 	int size=luaL_optint(L, 2, 1);
+	if(size<0) {
+		luaL_error(L,"argument must be positive or zero");
+	}
 	int i;
 	for(i=0;i<size;i++) {
 		lstage_newthread(L,s);
 		_DEBUG("pool_addthread pool:%p adding:%p\n",s,*th);
 	}
-	s->size+=size;
+	s->size+=size; //TODO mutex here
 	return size;
 }
 
@@ -87,6 +95,8 @@ static void get_metatable(lua_State * L) {
   		lua_setfield(L,-2,"add");
  		lua_pushcfunction(L,pool_killthread);
   		lua_setfield(L,-2,"kill");
+		lua_pushcfunction(L,pool_join);
+  		lua_setfield(L,-2,"join");
   	}
 }
 
@@ -99,6 +109,10 @@ static int pool_new(lua_State *L) {
 	p->ready=lstage_pqueue_new();
 	//lstage_lfqueue_setcapacity(p->ready,-1);
 	lstage_buildpool(L,p);
+	lua_pushcfunction(L,pool_addthread);
+	lua_pushvalue(L,-2);
+	lua_pushnumber(L,size);
+	lua_call(L,2,0);
 	return 1;
 }
 

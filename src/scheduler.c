@@ -178,6 +178,17 @@ static THREAD_RETURN_T THREAD_CALLCONV thread_mainloop(void *t_val) {
    return t_val;
 }
 
+int lstage_joinpool(lua_State *L,pool_t pool) {
+	thread_t * thread=lua_newuserdata(L,sizeof(thread_t));
+	thread_t t=malloc(sizeof(struct thread_s));
+	*t->th=pthread_self();
+	t->pool=pool;
+	t->state=THREAD_IDLE;
+	*thread=t;
+	(void)thread_mainloop(t);
+	return 1;
+}
+
 int lstage_newthread(lua_State *L,pool_t pool) {
 	_DEBUG("Creating new thread for pool %p\n",pool);
 	thread_t * thread=lua_newuserdata(L,sizeof(thread_t));
