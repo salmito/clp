@@ -11,6 +11,7 @@ typedef struct instance_s * instance_t;
 #include "lua.h"
 
 #define LSTAGE_INSTANCE_KEY "lstage-instance-key"
+#define LSTAGE_HANDLER_KEY "lstage-handler-key"
 
 enum instance_flag_t {
 	I_CREATED=0x0,

@@ -38,6 +38,9 @@ void lstage_initinstance(instance_t i) {
 	lua_pushcfunction(L,mar_decode);
 	lua_pushlstring(L,i->stage->env,i->stage->env_len);
 	lua_call(L,1,1);
+	lua_pushvalue(L,-1);
+	lua_pushliteral(L,LSTAGE_HANDLER_KEY);
+	lua_settable(L, LUA_REGISTRYINDEX);	
 	lua_call(L,1,1);
 	lua_settable(L, LUA_REGISTRYINDEX);
 	lua_pushliteral(L,LSTAGE_INSTANCE_KEY);

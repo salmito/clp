@@ -115,11 +115,7 @@ int lstage_getmetatable(lua_State *L) {
       const char *tname=lua_tostring(L,1);
       luaL_getmetatable(L,tname);
    } else {
-      if(!lua_getmetatable (L,1)) {
-         lua_pushnil(L);
-         lua_pushliteral(L,"Metatable not found for the provided value");
-         return 2;
-      }
+      lua_getmetatable (L,1);
    }
    return 1;
 }

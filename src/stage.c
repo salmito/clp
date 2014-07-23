@@ -51,11 +51,19 @@ get_max_instances (lua_State * L)
 static int
 stage_getenv (lua_State * L)
 {
+	lua_getfield(L, LUA_REGISTRYINDEX, LSTAGE_HANDLER_KEY);
+	if(lua_type(L,-1)==LUA_TFUNCTION) {
+		return 1;
+	}
+	lua_pop(L,1);
 	stage_t s = lstage_tostage (L, 1);
-	if (s->env == NULL)
+	if (s->env == NULL){
 		lua_pushnil (L);
-	else
+	} else {
+		lua_pushcfunction(L,mar_decode);
 		lua_pushlstring (L, s->env, s->env_len);
+		lua_call(L,1,1);
+	}
 	return 1;
 }
 
@@ -239,13 +247,66 @@ stage_ptr (lua_State * L)
 	return 1;
 }
 
+#define LSTAGE_STAGE_CACHE "lstage-stage-cache"
+
+static void
+stage_getcached(lua_State * L, stage_t t)
+{
+	lua_pushliteral(L,LSTAGE_STAGE_CACHE);
+	lua_gettable(L,LUA_REGISTRYINDEX);
+	if(!lua_istable(L,-1)) {
+		lua_pop(L,1);
+		lua_newtable(L);
+		lua_newtable(L);
+		lua_pushliteral(L,"v");
+		lua_setfield(L,-2,"__mode");
+		lua_setmetatable(L,-2);
+		lua_pushliteral(L,LSTAGE_STAGE_CACHE);
+		lua_pushvalue(L,-2);
+
+		lua_settable(L,LUA_REGISTRYINDEX);
+	}
+	lua_pushlightuserdata(L,t);
+	lua_gettable(L,-2);
+	lua_remove(L,-2);
+}
+
+static void
+stage_putcache(lua_State * L, stage_t t)
+{
+	lua_pushliteral(L,LSTAGE_STAGE_CACHE);
+	lua_gettable(L,LUA_REGISTRYINDEX);
+	if(!lua_isuserdata(L,-1)) {
+		lua_pop(L,1);
+		lua_newtable(L);
+		lua_newtable(L);
+		lua_pushliteral(L,"v");
+		lua_setfield(L,-2,"__mode");
+		lua_setmetatable(L,-2);
+		lua_pushliteral(L,LSTAGE_STAGE_CACHE);
+		lua_pushvalue(L,-2);
+		lua_settable(L,LUA_REGISTRYINDEX);
+	}
+	lua_pushlightuserdata(L,t);
+	lua_pushvalue(L,-3);
+	lua_settable(L,-3);
+	lua_pop(L,1);
+}
+
 void
 lstage_buildstage (lua_State * L, stage_t t)
 {
+	_DEBUG("Building stage %p\n",t);
+	stage_getcached(L,t);
+	if(lua_type(L,-1)==LUA_TUSERDATA) 
+		return;
+	lua_pop(L,1);
 	stage_t *s = lua_newuserdata (L, sizeof (stage_t *));
 	*s = t;
 	get_metatable (L);
 	lua_setmetatable (L, -2);
+	stage_putcache(L,t);
+	_DEBUG("Created userdata %p\n",t);
 }
 
 static int
@@ -303,8 +364,18 @@ stage_getparent (lua_State * L)
 	return 1;
 }
 
+static int
+stage_gc (lua_State * L)
+{
+//	stage_t s = lstage_tostage (L, 1);
+//	_DEBUG("Destroying stage %p\n",s);
+	return 0;
+}
+
+
 static const struct luaL_Reg StageMetaFunctions[] = {
 	{"__eq", stage_eq},
+	{"__gc", stage_gc},
 	{"__tostring", stage_tostring},
 	{"__call", stage_push},
 	{"instances", get_max_instances},
