@@ -124,7 +124,9 @@ LSTAGE_EXPORTAPI	int luaopen_lstage_event(lua_State *L) {
 	};
 	if(!event_thread) {
 		event_thread=malloc(sizeof(THREAD_T));
+#ifndef _WIN32
 		evthread_use_pthreads();
+#endif
 		THREAD_CREATE(event_thread, &event_main, NULL, 0);
 	}
 	lua_newtable(L);

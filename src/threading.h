@@ -41,7 +41,7 @@ typedef unsigned int uint_t;
 /* Do this BEFORE including time.h so that it is declaring _mktime32()
  * as it would have declared mktime().
  */
-#define mktime _mktime32
+//#define mktime _mktime32
 #endif
 #include <time.h>
 
@@ -67,6 +67,7 @@ enum e_status { PENDING, RUNNING, WAITING, DONE, ERROR_ST, CANCELLED };
   // 'SignalObjectAndWait' needs this (targets Windows 2000 and above)
   #define _WIN32_WINNT 0x0500
   #include <windows.h>
+  #include <winsock.h>
   #include <process.h>
 
   // MSDN: http://msdn2.microsoft.com/en-us/library/ms684254.aspx
@@ -137,6 +138,7 @@ enum e_status { PENDING, RUNNING, WAITING, DONE, ERROR_ST, CANCELLED };
   #endif
 	#define THREAD_CALLCONV
 #endif //THREADAPI == THREADAPI_PTHREAD
+  void SIGNAL_ONE( SIGNAL_T *ref );
 
 void SIGNAL_INIT( SIGNAL_T *ref );
 void SIGNAL_FREE( SIGNAL_T *ref );

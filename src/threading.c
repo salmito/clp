@@ -259,7 +259,7 @@ static void prepare_timeout( struct timespec *ts, time_d abs_secs ) {
 
     if (h == INVALID_HANDLE_VALUE) FAIL( "CreateThread", GetLastError() );
 
-    if (prio!= 0) {
+    /*if (prio!= 0) {
         int win_prio= (prio == +3) ? THREAD_PRIORITY_TIME_CRITICAL :
                       (prio == +2) ? THREAD_PRIORITY_HIGHEST :
                       (prio == +1) ? THREAD_PRIORITY_ABOVE_NORMAL :
@@ -269,7 +269,7 @@ static void prepare_timeout( struct timespec *ts, time_d abs_secs ) {
 
         if (!SetThreadPriority( h, win_prio )) 
             FAIL( "SetThreadPriority", GetLastError() );
-    }
+    }*/
     *ref= h;
   }
   //
@@ -346,6 +346,10 @@ bool_t THREAD_WAIT_IMPL( THREAD_T *ref, double secs)
     if (rc==WAIT_TIMEOUT) return FALSE;
     if (rc!=0) FAIL( "SignalObjectAndWait", rc );
     return TRUE;
+  }
+  void SIGNAL_ONE( SIGNAL_T *ref ) {
+    if (!PulseEvent( *ref ))
+        FAIL( "PulseEvent", GetLastError() );
   }
   void SIGNAL_ALL( SIGNAL_T *ref ) {
 /* 

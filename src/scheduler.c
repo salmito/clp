@@ -29,7 +29,11 @@ static int thread_join (lua_State *L) {
 		struct timespec to;
 		clock_gettime(CLOCK_REALTIME, &to);
 		to.tv_sec += timeout;
-	   pthread_timedjoin_np(*t->th,NULL,&to);
+		#ifdef _WIN32
+	   pthread_join(*t->th,NULL);
+		#else
+		pthread_timedjoin_np(*t->th,NULL,&to);
+		#endif	
    } else {
 	   pthread_join(*t->th,NULL);
    }
