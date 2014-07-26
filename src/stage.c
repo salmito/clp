@@ -392,7 +392,7 @@ lstage_newstage (lua_State * L)
 {
 	int idle = 0;
 	stage_t *stage = NULL;
-	if (!lua_gettop (L))
+	if (lua_type(L,1)==LUA_TNIL)
 	  {
 		  stage = lua_newuserdata (L, sizeof (stage_t *));
 		  (*stage) = malloc (sizeof (struct lstage_Stage));
@@ -421,7 +421,7 @@ lstage_newstage (lua_State * L)
 		  envcp[len] = '\0';
 		  memcpy (envcp, env, len + 1);
 		  (*stage)->env = envcp;
-		  (*stage)->env_len = len;
+		  (*stage)->env_len = len; 
 	  }
 	lua_pushcfunction(L,lstage_channelnew);
 	lua_call(L,0,1);
