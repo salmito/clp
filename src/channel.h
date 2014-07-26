@@ -7,6 +7,8 @@
 
 typedef struct channel_s  * channel_t;
 
+#define LSTAGE_CHANNEL_CACHE "lstage-channel-cache"
+
 #include "event.h"
 
 struct channel_s {
@@ -21,5 +23,8 @@ struct channel_s {
 
 //channel_t * lstage_newchannel(lua_State *L);
 channel_t lstage_tochannel(lua_State *L, int i);
+int lstage_channelnew(lua_State *L);
+void lstage_pushchannel(lua_State * L,channel_t t);
+int lstage_pushevent(lua_State *L);
 
 #endif

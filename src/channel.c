@@ -14,6 +14,50 @@ channel_t lstage_tochannel(lua_State *L, int i) {
 	return *t;
 }
 
+static void
+channel_putcache(lua_State * L, channel_t t)
+{
+	lua_pushliteral(L,LSTAGE_CHANNEL_CACHE);
+	lua_gettable(L,LUA_REGISTRYINDEX);
+	if(!lua_isuserdata(L,-1)) {
+		lua_pop(L,1);
+		lua_newtable(L);
+		lua_newtable(L);
+		lua_pushliteral(L,"v");
+		lua_setfield(L,-2,"__mode");
+		lua_setmetatable(L,-2);
+		lua_pushliteral(L,LSTAGE_CHANNEL_CACHE);
+		lua_pushvalue(L,-2);
+		lua_settable(L,LUA_REGISTRYINDEX);
+	}
+	lua_pushlightuserdata(L,t);
+	lua_pushvalue(L,-3);
+	lua_settable(L,-3);
+	lua_pop(L,1);
+}
+
+static void
+channel_getcached(lua_State * L, channel_t t)
+{
+	lua_pushliteral(L,LSTAGE_CHANNEL_CACHE);
+	lua_gettable(L,LUA_REGISTRYINDEX);
+	if(!lua_istable(L,-1)) {
+		lua_pop(L,1);
+		lua_newtable(L);
+		lua_newtable(L);
+		lua_pushliteral(L,"v");
+		lua_setfield(L,-2,"__mode");
+		lua_setmetatable(L,-2);
+		lua_pushliteral(L,LSTAGE_CHANNEL_CACHE);
+		lua_pushvalue(L,-2);
+		lua_settable(L,LUA_REGISTRYINDEX);
+	}
+	lua_pushlightuserdata(L,t);
+	lua_gettable(L,-2);
+	lua_remove(L,-2);
+}
+
+
 static int channel_eq(lua_State * L) {
 	channel_t s1=lstage_tochannel(L,1);
 	channel_t s2=lstage_tochannel(L,2);
@@ -48,9 +92,10 @@ static int channel_ptr(lua_State * L) {
 	return 1;
 }
 
-static int channel_pushevent(lua_State *L) {
+int lstage_pushevent(lua_State *L) {
 	channel_t c = lstage_tochannel(L,1);
    int top=lua_gettop(L);
+  	_DEBUG("CHANNEL PUSH EVENT: %p %d\n",c,top);
    lua_pushcfunction(L,mar_encode);
    lua_newtable(L);
    int i;
@@ -110,6 +155,7 @@ static int channel_tryget(lua_State *L) {
 static int channel_getevent(lua_State *L) {
 	channel_t c = lstage_tochannel(L,1);
 	event_t ev=NULL;
+	_DEBUG("CHANNEL GET EVENT: %p\n",c);
 	lua_pushliteral(L,LSTAGE_INSTANCE_KEY);
 	lua_gettable(L, LUA_REGISTRYINDEX);
    LOCK(c);
@@ -146,11 +192,11 @@ static int channel_getevent(lua_State *L) {
 static const struct luaL_Reg ChannelMetaFunctions[] = {
 		{"__eq",channel_eq},
 		{"__tostring",channel_tostring},
-		{"id",channel_ptr},
+		{"__id",channel_ptr},
 		{"size",channel_getsize},
 		{"setsize",channel_setsize},
 		{"get",channel_getevent},
-		{"push",channel_pushevent},
+		{"push",lstage_pushevent},
 		{"tryget",channel_tryget},
 		{NULL,NULL}
 };
@@ -167,19 +213,24 @@ static void get_metatable(lua_State * L) {
 		#endif 
   		lua_pushvalue(L,-1);
   		lua_setfield(L,-2,"__index");
-		luaL_loadstring(L,"local id=(...):id() return function() return require'lstage.channel'.get(id) end");
+		luaL_loadstring(L,"local id=(...):__id() return function() return require'lstage.channel'.get(id) end");
 		lua_setfield (L, -2,"__wrap");
   	}
 }
 
-static void channel_build(lua_State * L,channel_t t) {
+void lstage_pushchannel(lua_State * L,channel_t t) {
+	channel_getcached(L,t);
+	if(lua_type(L,-1)==LUA_TUSERDATA) 
+		return;
+	lua_pop(L,1);
 	channel_t *s=lua_newuserdata(L,sizeof(channel_t *));
 	*s=t;
 	get_metatable(L);
    lua_setmetatable(L,-2);
+   channel_putcache(L,t);
 }
 
-static int channel_new(lua_State *L) {
+int lstage_channelnew(lua_State *L) {
 	channel_t t=malloc(sizeof(struct channel_s));
 	int size=luaL_optint(L, 1, -1);
 	SIGNAL_INIT(&t->cond);
@@ -191,18 +242,18 @@ static int channel_new(lua_State *L) {
 	t->wait_queue=lstage_lfqueue_new();
 	lstage_lfqueue_setcapacity(t->event_queue,size);
 	lstage_lfqueue_setcapacity(t->wait_queue,-1);
-	channel_build(L,t);
+	lstage_pushchannel(L,t);
    return 1;
 }
 
 static int channel_get(lua_State * L) {
 	channel_t s=lua_touserdata(L,1);
-	channel_build(L,s);
+	lstage_pushchannel(L,s);
 	return 1;
 }
 
 static const struct luaL_Reg LuaExportFunctions[] = {
-		{"new",channel_new},
+		{"new",lstage_channelnew},
 		{"get",channel_get},
 		{NULL,NULL}
 };

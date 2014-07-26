@@ -69,7 +69,7 @@ static const struct luaL_Reg StageMetaFunctions[] = {
 		{"__tostring",thread_tostring},
 		{"__eq",thread_eq},
 		{"join",thread_join},
-		{"__ptr",thread_ptr},
+		{"__id",thread_ptr},
 		{"state",thread_state},
 		{"rawkill",thread_rawkill},
 		{NULL,NULL}
@@ -83,7 +83,7 @@ static void get_metatable(lua_State * L) {
   		lua_pushvalue(L,-1);
   		lua_setfield(L,-2,"__index");
 		LUA_REGISTER(L,StageMetaFunctions);
-		luaL_loadstring(L,"local th=(...):ptr() return function() return require'lstage.scheduler'.build(th) end");
+		luaL_loadstring(L,"local th=(...):__id() return function() return require'lstage.scheduler'.build(th) end");
 		lua_setfield (L, -2,"__wrap");
   	}
 }
@@ -95,7 +95,8 @@ static void thread_resume_instance(instance_t i) {
 	switch(i->flags) {
 		case I_CREATED:
 			lstage_initinstance(i);
-			break;
+			lstage_pushinstance(i);
+			return;
 		case I_WAITING_IO:
 			i->flags=I_READY;
 			lua_pushliteral(L,STAGE_HANDLER_KEY);
@@ -158,7 +159,7 @@ static void thread_resume_instance(instance_t i) {
 			break;
 	}
 	_DEBUG("Instance Yielded: %p %d lua_State (%p)\n",i,i->flags,i->L);
-	if(i->flags==I_READY || i->flags==I_IDLE) {
+	if(i->flags==I_IDLE) {
 	   lstage_putinstance(i);
 	}
 }

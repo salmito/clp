@@ -21,4 +21,4 @@ add_timer(0.1,handler(1))
 add_timer(0.4,handler(2))
 add_timer(0.8,handler(3))
 
-lstage.channel():get() --dorme para sempre
+lstage.channel():get() --sleeps forever

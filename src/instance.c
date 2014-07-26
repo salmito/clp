@@ -22,6 +22,9 @@ static const struct luaL_Reg InstanceLibs[] = {
 void lstage_initinstance(instance_t i) {
 	_DEBUG("Initiating instance %p\n",i);
 	lua_State *L=i->L;
+		lua_pushliteral(L,LSTAGE_INSTANCE_KEY);
+	lua_pushlightuserdata(L,i);
+	lua_settable(L, LUA_REGISTRYINDEX);	
 	lua_pushcfunction(L,luaopen_base);
    lua_pcall(L,0,0,0);
    lua_pushcfunction(L,luaopen_package);
@@ -31,21 +34,24 @@ void lstage_initinstance(instance_t i) {
    lua_pop(L,2);
 //	luaL_openlibs(L);
 	lua_pushliteral(L,STAGE_HANDLER_KEY);
-	luaL_loadstring(L,"local h=(...) "
+/*	luaL_loadstring(L,"local h=(...) "
 	                  "local c=require'coroutine' "
 	                  "local f=function() while true do h(c.yield()) end end "
-	                  "local r=c.wrap(f) r() return r");
+	                  "local r=c.wrap(f) r() return r");*/
+	
+	luaL_loadstring(L,"local a={...} "
+							"local h=a[1] "
+	                  "local c=a[2] "
+                     "local d=require'coroutine' "
+                  //   "print('instance',h,c) "
+	                  "local f=function() while true do h(c:get()) end end "
+	                  "local r=d.wrap(f) return r");
 	lua_pushcfunction(L,mar_decode);
 	lua_pushlstring(L,i->stage->env,i->stage->env_len);
 	lua_call(L,1,1);
-	lua_pushvalue(L,-1);
-	lua_pushliteral(L,LSTAGE_HANDLER_KEY);
-	lua_settable(L, LUA_REGISTRYINDEX);	
-	lua_call(L,1,1);
+	lstage_pushchannel(L,i->stage->input);
+	lua_call(L,2,1);
 	lua_settable(L, LUA_REGISTRYINDEX);
-	lua_pushliteral(L,LSTAGE_INSTANCE_KEY);
-	lua_pushlightuserdata(L,i);
-	lua_settable(L, LUA_REGISTRYINDEX);	
 	i->flags=I_READY;
 }
 
@@ -61,15 +67,7 @@ instance_t lstage_newinstance(stage_t s) {
 }
 
 void lstage_putinstance(instance_t i) {
-	event_t ev=NULL;
 	_DEBUG("Putting instance %p\n",i);
-		//TODO maybe put a spinlock here
-	if(lstage_lfqueue_try_pop(i->stage->event_queue,&ev)) {
-		_DEBUG("HAS event %p\n",i);
-		i->ev=ev;
-		i->flags=I_READY;
-		return lstage_pushinstance(i);
-	}
 	i->flags=I_IDLE;
 	_DEBUG("instance is now I_IDLE %p lua_State %p (%u)\n",i,i->L,lstage_lfqueue_size(i->stage->instances));
 	if(!lstage_lfqueue_try_push(i->stage->instances,&i)) {
