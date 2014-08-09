@@ -20,26 +20,32 @@ static const struct luaL_Reg InstanceLibs[] = {
 };
 
 void lstage_initinstance(instance_t i) {
-	_DEBUG("Initiating instance %p\n",i);
+	_DEBUG("Initiating instance1 %p\n",i);
 	lua_State *L=i->L;
 		lua_pushliteral(L,LSTAGE_INSTANCE_KEY);
 	lua_pushlightuserdata(L,i);
+		_DEBUG("Initiating instance2 %p\n",i);
 	lua_settable(L, LUA_REGISTRYINDEX);	
 	lua_pushcfunction(L,luaopen_base);
+		_DEBUG("Initiating instance3 %p\n",i);
    lua_pcall(L,0,0,0);
    lua_pushcfunction(L,luaopen_package);
+   	_DEBUG("Initiating instance4 %p\n",i);
    lua_pcall(L,0,1,0);
+     	_DEBUG("Initiating instance4.5 %p\n",i);
    lua_getfield(L,-1,"preload");
+   	_DEBUG("Initiating instance5 %p\n",i);
 	LUA_REGISTER(L,InstanceLibs);
+   	_DEBUG("Initiating instance6 %p\n",i);
    lua_pop(L,2);
 //	luaL_openlibs(L);
 	lua_pushliteral(L,STAGE_HANDLER_KEY);
+	_DEBUG("Initiating instance2 %p\n",i);
 	luaL_loadstring(L,"local a={...} "
-							"local h=a[1] "
+							"local h=a[1].f "
 	                  "local i=a[2] "
-	                  "local c=require'coroutine' "
-	                  "local f=function() c.yield() while true do h.f(i:get()) end end "
-	                  "local r=c.wrap(f) r() return r");
+	                  "return require'coroutine'.wrap(function() while true do h(i:get()) end end)"
+	                  );
 	
 /*	luaL_loadstring(L,"local a={...} "
 							"local h=a[1] "

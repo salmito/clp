@@ -90,55 +90,58 @@ static void get_metatable(lua_State * L) {
 
 static void thread_resume_instance(instance_t i) {
 	_DEBUG("Resuming instance: %p %d lua_State (%p)\n",i,i->flags,i->L);
+
 	lua_State * L=i->L;
-	
+
 	switch(i->flags) {
 		case I_CREATED:
 			lstage_initinstance(i);
-			//stackDump(L,"init");
-			lua_pushliteral(L,STAGE_HANDLER_KEY);
-			lua_gettable(L,LUA_REGISTRYINDEX);
-			if(lua_pcall(L,0,0,0)) {
-		      const char * err=lua_tostring(L,-1);
-		      fprintf(stderr,"1Error starting instance: %s\n",err);
+			lua_getfield(L,LUA_REGISTRYINDEX,LSTAGE_ERRORFUNCTION_KEY);
+			lua_getfield(L,LUA_REGISTRYINDEX,STAGE_HANDLER_KEY);
+			if(lua_pcall(L,0,0,-2)) {
+			 	const char * err=lua_tostring(L,-1);
+	      	fprintf(stderr,"Error running instance (status: created) : %s\n",err);
 		      lstage_destroyinstance(i);
+		      return;
 		   }
+  		   lua_pop(L,1);
+//			stackDump(L,"created");
 			return;
 		case I_WAITING_IO:
 			i->flags=I_READY;
-			lua_pushliteral(L,STAGE_HANDLER_KEY);
-			lua_gettable(L,LUA_REGISTRYINDEX);
+			lua_getfield(L,LUA_REGISTRYINDEX,LSTAGE_ERRORFUNCTION_KEY);
+			lua_getfield(L,LUA_REGISTRYINDEX,STAGE_HANDLER_KEY);
 			lua_pushboolean(L,1);
-			if(lua_pcall(i->L,1,0,0)) {
-				lua_getfield(L,LUA_REGISTRYINDEX,LSTAGE_ERRORFUNCTION_KEY);
-				lua_insert(L,1);
-				if(lua_pcall(i->L,1,0,0)) {
-		      	const char * err=lua_tostring(L,-1);
-		      	fprintf(stderr,"2Error resuming instance: %s\n",err);
-		      }
+			if(lua_pcall(i->L,1,0,-3)) {
+				const char * err=lua_tostring(L,-1);
+		     	fprintf(stderr,"Error running instance (status: waiting io): %s\n",err);
 		      lstage_destroyinstance(i);
+  		      return;
 		   }
+		   lua_pop(L,1);
+ // 			stackDump(L,"waiting");
 		   break;
 		case I_TIMEOUT_IO:
 			i->flags=I_READY;
 			lua_getfield(L,LUA_REGISTRYINDEX,LSTAGE_ERRORFUNCTION_KEY);
 			lua_getfield(L,LUA_REGISTRYINDEX,STAGE_HANDLER_KEY);
 			lua_pushboolean(L,0);
-			stackDump(L,"r1");
 			if(lua_pcall(i->L,1,0,-3)) {
 			  	const char * err=lua_tostring(L,-1);
-		     	fprintf(stderr,"3Error resuming instance: %s\n",err);
-				stackDump(L,"r2");
+		     	fprintf(stderr,"Error running instance (status: io timeout): %s\n",err);
 		      lstage_destroyinstance(i);
+  		      return;
 		   }
+		   lua_pop(L,1);
+//  			stackDump(L,"timeout");
 		   break;
 		case I_READY:
+			lua_getfield(L,LUA_REGISTRYINDEX,LSTAGE_ERRORFUNCTION_KEY);
+			lua_getfield(L,LUA_REGISTRYINDEX,STAGE_HANDLER_KEY);
+			i->args=0;
 			if(i->ev) {
-				lua_pushliteral(L,STAGE_HANDLER_KEY);
-				lua_gettable(L,LUA_REGISTRYINDEX);
 		      lua_pushcfunction(L,mar_decode);
 		      lua_pushlstring(L,i->ev->data,i->ev->len);
-		      
 		      lstage_destroyevent(i->ev);
   		      i->ev=NULL;
 				if(lua_pcall(L,1,1,0)) {
@@ -146,35 +149,31 @@ static void thread_resume_instance(instance_t i) {
 					lua_insert(L,1);
 					if(lua_pcall(i->L,1,0,0)) {
 				   	const char * err=lua_tostring(L,-1);
-				   	fprintf(stderr,"4Error resuming instance: %s\n",err);
+				   	fprintf(stderr,"Error unpacking event: %s\n",err);
 				   }
 				   lstage_destroyinstance(i);
+	  		      return;
 				}
 				int n=
 				#if LUA_VERSION_NUM < 502
-					luaL_getn(L,2);
+					luaL_getn(L,3);
 			   #else
-					luaL_len(L,2);
+					luaL_len(L,3);
 				#endif
 				int j;
 				for(j=1;j<=n;j++) lua_rawgeti(L,2,j);
-				lua_remove(L,2);
+				lua_remove(L,3);
 				i->args=n;
-			} else {
-				lua_pushliteral(L,STAGE_HANDLER_KEY);
-				lua_gettable(L,LUA_REGISTRYINDEX);
-				i->args=0;
 			}
-			//stackDump(L,"dump1");
-			if(lua_pcall(L,i->args,0,0)) {
-				lua_getfield(L,LUA_REGISTRYINDEX,LSTAGE_ERRORFUNCTION_KEY);
-				lua_insert(L,1);
-				if(lua_pcall(i->L,1,0,0)) {
-		      	const char * err=lua_tostring(L,-1);
-		      	fprintf(stderr,"5rror resuming instance: %s\n",err);
-		      }
+
+			if(lua_pcall(L,i->args,0, -(i->args+2))) {
+	      	const char * err=lua_tostring(L,-1);
+	      	fprintf(stderr,"Error resuming instance (status: ready): %s\n",err);
 		      lstage_destroyinstance(i);
+  		      return;
 		   }
+		   lua_pop(L,1);
+//  			stackDump(L,"ready");
 			break;
 		case I_WAITING_EVENT:
 			return;

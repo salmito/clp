@@ -58,7 +58,7 @@ static int
 stage_getenv (lua_State * L)
 {
 	lua_getfield(L, LUA_REGISTRYINDEX, LSTAGE_HANDLER_KEY);
-	if(lua_type(L,-1)==LUA_TFUNCTION) {
+	if(lua_type(L,-1)!=LUA_TNIL) {
 		return 1;
 	}
 	lua_pop(L,1);

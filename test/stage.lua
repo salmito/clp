@@ -1,14 +1,14 @@
 local lstage=require'lstage'
 local s1=lstage.stage()
-s1:wrap(function(...) 
+local function handler(...) 
 --print('args',...)
 
-print(
-	'stage results',
-	(lstage.pool==s1:pool()),
-	(s1==lstage:self()),
-	(s1:setpriority(10))
-	)
+print('s1',s1,lstage:self(),s1==lstage:self())
+assert(s1==lstage:self())
+
+print('pool',lstage.pool,s1:pool(),lstage.pool==s1:pool())
+assert(lstage.pool==s1:pool())
+
 	
 	lstage.stage(function()
 		print(
@@ -19,7 +19,9 @@ print(
 	end):push()
 	
 	collectgarbage('collect')
-end)
+end
+
+s1:wrap(handler)
 s1:add(1)
 print('push',s1,s1:push('par1',math.pi))
 
