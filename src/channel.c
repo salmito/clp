@@ -166,8 +166,8 @@ static int channel_getevent(lua_State *L) {
 		return n;
 	}
 	if(lua_type(L,-1)!=LUA_TLIGHTUSERDATA) {
-		MUTEX_LOCK(&c->mutex);
   		UNLOCK(c);
+		MUTEX_LOCK(&c->mutex);
 		c->waiting++;
 		SIGNAL_WAIT(&c->cond,&c->mutex,-1.0);
 		int n=0;
@@ -182,7 +182,6 @@ static int channel_getevent(lua_State *L) {
 	instance_t i=lua_touserdata(L,-1);
 	lua_pop(L,1);
 	i->flags=I_WAITING_CHANNEL;
-//	i->channel=c;
 	lstage_lfqueue_try_push(c->wait_queue,&i);
 	UNLOCK(c);
 	return lua_yield(L,0);

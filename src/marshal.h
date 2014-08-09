@@ -6,6 +6,7 @@
 #define MAR_TREF 1
 #define MAR_TVAL 2
 #define MAR_TUSR 3
+#define MAR_TPTR 4
 
 #define MAR_CHR 1
 #define MAR_I32 4

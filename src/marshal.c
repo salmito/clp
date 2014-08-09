@@ -179,9 +179,19 @@ static void mar_encode_value(lua_State *L, mar_Buffer *buf, int val, size_t *idx
 
             lua_pushvalue(L, -1);
             lua_getinfo(L, ">nuS", &ar);
-            //printf("Function name='%s' type='%s' nups=%d\n",ar.namewhat,ar.what,ar.nups);
+  //          printf("Function name='%s' type='%s' nups=%d\n",ar.namewhat,ar.what,ar.nups);
             if (ar.what[0] != 'L') {
-                luaL_error(L, "attempt to persist a C function '%s'", ar.name);
+//	            tag = MAR_PTR;	
+//					if(nowrap)
+            	   luaL_error(L, "attempt to persist a C function '%s'", ar.name);
+/*            	tag = MAR_TPTR;
+
+            	buf_write(L, (void*)&tag, MAR_CHR, buf);           	   
+        	      void * ptr_val = lua_tocfunction(L,-1);
+              	printf("persisting CFunction %p\n",ptr_val);
+               long long v = (long long)ptr_val;
+               buf_write(L, (char*)&v, MAR_I64, buf);
+			      break;*/
             }
             tag = MAR_TVAL;
             lua_pushvalue(L, -1);
@@ -385,8 +395,7 @@ static void mar_decode_value
             int ref;
             mar_next_len(ref, int);
             lua_rawgeti(L, SEEN_IDX, ref);
-        }
-        else {
+        } else {
             mar_next_len(l, uint32_t);
             dec_buf.data = (char*)*p;
             dec_buf.size = l;

@@ -34,22 +34,37 @@ void lstage_initinstance(instance_t i) {
    lua_pop(L,2);
 //	luaL_openlibs(L);
 	lua_pushliteral(L,STAGE_HANDLER_KEY);
-/*	luaL_loadstring(L,"local h=(...) "
-	                  "local c=require'coroutine' "
-	                  "local f=function() while true do h(c.yield()) end end "
-	                  "local r=c.wrap(f) r() return r");*/
-	
 	luaL_loadstring(L,"local a={...} "
 							"local h=a[1] "
+	                  "local i=a[2] "
+	                  "local c=require'coroutine' "
+	                  "local f=function() c.yield() while true do h.f(i:get()) end end "
+	                  "local r=c.wrap(f) r() return r");
+	
+/*	luaL_loadstring(L,"local a={...} "
+							"local h=a[1] "
 	                  "local c=a[2] "
+	                  "h.e=h.e or function(...) print(...) end "
                      "local d=require'coroutine' "
                   //   "print('instance',h,c) "
-	                  "local f=function() while true do h(c:get()) end end "
-	                  "local r=d.wrap(f) return r");
+	                  "local f=function() while true do "
+	                  "xpcall(h.f,h.e,c:get()) "
+	                  "end end "
+	                  "local r=d.wrap(f) return r");*/
+	/*luaL_loadstring(L,//"local a={...} "
+							"local h={...}[1] "
+	                  "local i={...}[2] "
+	                  "return function() while true do xpcall(h.f,h.e,i:get()) end end"
+	                  "");*/
 	lua_pushcfunction(L,mar_decode);
 	lua_pushlstring(L,i->stage->env,i->stage->env_len);
+	//stackDump(L,"init1");
 	lua_call(L,1,1);
+	lua_pushliteral(L,LSTAGE_ERRORFUNCTION_KEY);
+	lua_getfield(L,-2,"e");
+	lua_settable(L, LUA_REGISTRYINDEX);
 	lstage_pushchannel(L,i->stage->input);
+	//stackDump(L,"init2");
 	lua_call(L,2,1);
 	lua_settable(L, LUA_REGISTRYINDEX);
 	i->flags=I_READY;

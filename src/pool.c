@@ -46,7 +46,7 @@ static int pool_addthread(lua_State * L) {
 	int i;
 	for(i=0;i<size;i++) {
 		lstage_newthread(L,s);
-		_DEBUG("pool_addthread pool:%p adding:%p\n",s,*th);
+		_DEBUG("pool_addthread pool:%p\n",s);
 	}
 	s->size+=size; //TODO mutex here
 	return size;

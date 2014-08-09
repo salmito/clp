@@ -87,13 +87,20 @@ static int stage_instantiate (lua_State * L);
 static int
 stage_wrap (lua_State * L)
 {
+	int top=lua_gettop(L);
 	stage_t s = lstage_tostage (L, 1);
 	if (s->env != NULL)
 		luaL_error (L, "Stage handler already set");
 
 	luaL_checktype (L, 2, LUA_TFUNCTION);
 	lua_pushcfunction (L, mar_encode);
+	lua_newtable(L);
 	lua_pushvalue (L, 2);
+	lua_setfield(L,-2,"f");
+   if(lua_type(L,3) == LUA_TFUNCTION && top>=3) {   
+ 	  lua_pushvalue (L, 3);
+	  lua_setfield(L,-2,"e");
+   }
 	lua_call (L, 1, 1);
 
 	const char *env = NULL;
@@ -392,7 +399,8 @@ lstage_newstage (lua_State * L)
 {
 	int idle = 0;
 	stage_t *stage = NULL;
-	if (lua_type(L,1)==LUA_TNIL)
+	int top=lua_gettop(L);
+	if (top==0)
 	  {
 		  stage = lua_newuserdata (L, sizeof (stage_t *));
 		  (*stage) = malloc (sizeof (struct lstage_Stage));
@@ -404,9 +412,19 @@ lstage_newstage (lua_State * L)
 	else
 	  {
 		  luaL_checktype (L, 1, LUA_TFUNCTION);
-		  idle = luaL_optint (L, 2, 1);
+   	  if(lua_type(L,2) == LUA_TNUMBER) { 
+			  idle = luaL_optint (L, 2, 1);
+		  } else {
+		  	idle=1;
+		  }
 		  lua_pushcfunction (L, mar_encode);
+		  lua_newtable(L);
 		  lua_pushvalue (L, 1);
+		  lua_setfield(L,-2,"f");
+		  if(lua_type(L,2) == LUA_TFUNCTION && top>=2) {
+			  lua_pushvalue (L, 2);
+			  lua_setfield(L,-2,"e");
+		  }
 		  lua_call (L, 1, 1);
 		  const char *env = NULL;
 		  size_t len = 0;
@@ -415,7 +433,6 @@ lstage_newstage (lua_State * L)
 		  stage = lua_newuserdata (L, sizeof (stage_t *));
 		  (*stage) = calloc (1, sizeof (struct lstage_Stage));
 		  (*stage)->instances = lstage_lfqueue_new ();
-
 			lstage_lfqueue_setcapacity ((*stage)->instances,0);
 		  char *envcp = malloc (len + 1);
 		  envcp[len] = '\0';

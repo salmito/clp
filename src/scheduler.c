@@ -95,7 +95,14 @@ static void thread_resume_instance(instance_t i) {
 	switch(i->flags) {
 		case I_CREATED:
 			lstage_initinstance(i);
-			lstage_pushinstance(i);
+			//stackDump(L,"init");
+			lua_pushliteral(L,STAGE_HANDLER_KEY);
+			lua_gettable(L,LUA_REGISTRYINDEX);
+			if(lua_pcall(L,0,0,0)) {
+		      const char * err=lua_tostring(L,-1);
+		      fprintf(stderr,"1Error starting instance: %s\n",err);
+		      lstage_destroyinstance(i);
+		   }
 			return;
 		case I_WAITING_IO:
 			i->flags=I_READY;
@@ -103,18 +110,26 @@ static void thread_resume_instance(instance_t i) {
 			lua_gettable(L,LUA_REGISTRYINDEX);
 			lua_pushboolean(L,1);
 			if(lua_pcall(i->L,1,0,0)) {
-		      const char * err=lua_tostring(L,-1);
-		      fprintf(stderr,"Error resuming instance: %s\n",err);
+				lua_getfield(L,LUA_REGISTRYINDEX,LSTAGE_ERRORFUNCTION_KEY);
+				lua_insert(L,1);
+				if(lua_pcall(i->L,1,0,0)) {
+		      	const char * err=lua_tostring(L,-1);
+		      	fprintf(stderr,"2Error resuming instance: %s\n",err);
+		      }
+		      lstage_destroyinstance(i);
 		   }
 		   break;
 		case I_TIMEOUT_IO:
 			i->flags=I_READY;
-			lua_pushliteral(L,STAGE_HANDLER_KEY);
-			lua_gettable(L,LUA_REGISTRYINDEX);
+			lua_getfield(L,LUA_REGISTRYINDEX,LSTAGE_ERRORFUNCTION_KEY);
+			lua_getfield(L,LUA_REGISTRYINDEX,STAGE_HANDLER_KEY);
 			lua_pushboolean(L,0);
-			if(lua_pcall(i->L,1,0,0)) {
-		      const char * err=lua_tostring(L,-1);
-		      fprintf(stderr,"Error resuming instance: %s\n",err);
+			stackDump(L,"r1");
+			if(lua_pcall(i->L,1,0,-3)) {
+			  	const char * err=lua_tostring(L,-1);
+		     	fprintf(stderr,"3Error resuming instance: %s\n",err);
+				stackDump(L,"r2");
+		      lstage_destroyinstance(i);
 		   }
 		   break;
 		case I_READY:
@@ -127,9 +142,13 @@ static void thread_resume_instance(instance_t i) {
 		      lstage_destroyevent(i->ev);
   		      i->ev=NULL;
 				if(lua_pcall(L,1,1,0)) {
-					const char * err=lua_tostring(L,-1);
-			      fprintf(stderr,"Error decoding event: %s\n",err);
-			      break;
+					lua_getfield(L,LUA_REGISTRYINDEX,LSTAGE_ERRORFUNCTION_KEY);
+					lua_insert(L,1);
+					if(lua_pcall(i->L,1,0,0)) {
+				   	const char * err=lua_tostring(L,-1);
+				   	fprintf(stderr,"4Error resuming instance: %s\n",err);
+				   }
+				   lstage_destroyinstance(i);
 				}
 				int n=
 				#if LUA_VERSION_NUM < 502
@@ -146,10 +165,16 @@ static void thread_resume_instance(instance_t i) {
 				lua_gettable(L,LUA_REGISTRYINDEX);
 				i->args=0;
 			}
+			//stackDump(L,"dump1");
 			if(lua_pcall(L,i->args,0,0)) {
-		      const char * err=lua_tostring(L,-1);
-		      fprintf(stderr,"Error resuming instance: %s\n",err);
-		   } 
+				lua_getfield(L,LUA_REGISTRYINDEX,LSTAGE_ERRORFUNCTION_KEY);
+				lua_insert(L,1);
+				if(lua_pcall(i->L,1,0,0)) {
+		      	const char * err=lua_tostring(L,-1);
+		      	fprintf(stderr,"5rror resuming instance: %s\n",err);
+		      }
+		      lstage_destroyinstance(i);
+		   }
 			break;
 		case I_WAITING_EVENT:
 			return;
@@ -157,10 +182,6 @@ static void thread_resume_instance(instance_t i) {
 			return;
 		case I_IDLE:
 			break;
-	}
-	_DEBUG("Instance Yielded: %p %d lua_State (%p)\n",i,i->flags,i->L);
-	if(i->flags==I_IDLE) {
-	   lstage_putinstance(i);
 	}
 }
 

@@ -1,7 +1,7 @@
 local lstage=require'lstage'
 local s1=lstage.stage()
 s1:wrap(function(...) 
-print('args',...)
+--print('args',...)
 
 print(
 	'stage results',
