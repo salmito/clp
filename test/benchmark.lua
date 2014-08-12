@@ -49,4 +49,3 @@ for i=0,n do
   f(1)
 end
 print("serial",now()-thn,os.clock()-thn_clk)
-

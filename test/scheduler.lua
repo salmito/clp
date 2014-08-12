@@ -28,14 +28,14 @@ local stage1=lstage.stage(function(str)
 	while true do
 		print(str)
 		e.sleep(0.5)
-		stage2:push('event')
+		stage2:push('event','test2')
 	end
 end,function() print(require'debug'.traceback()) end)
 
 stage1:setpool(pool)
 print(assert(stage1:pool()==pool,"incorrect pool") and "stage1 pool OK "..tostring(pool))
 local i=0
-stage2:wrap(function(e) i=i+1 print(e,i) end)
+stage2:wrap(function(e,f) i=i+1 print(e,f,i) end)
 
 print("stage1",stage1)
 print("stage2",stage2)

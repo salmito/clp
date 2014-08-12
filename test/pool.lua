@@ -18,4 +18,4 @@ local sLoop3=lstage.stage(function()
 	while true do end
 end):setpool(sLoop2:pool()):push()
 
-lstage.event.sleep(4)
+lstage.event.sleep(10)
