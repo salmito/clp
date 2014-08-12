@@ -8,7 +8,16 @@
 
 #include <time.h>
 
-//static LFqueue_t ready_queue=NULL;
+/*static char * instance_state[]={
+	"CREATED",
+	"READY",
+	"RUNNING",
+	"WAITING_IO",
+	"TIMEOUT_IO",
+	"WAITING_EVENT",
+	"WAITING_CHANNEL",
+	"I_IDLE"
+};*/
 
 static int thread_tostring (lua_State *L) {
   thread_t * t = luaL_checkudata (L, 1, LSTAGE_THREAD_METATABLE);
@@ -147,6 +156,10 @@ static void thread_resume_instance(instance_t i) {
       return;
    }
   	lua_pop(L,1);
+//  	printf("instance %s\n",instance_state[i->flags]);
+  	if(i->flags==I_READY) { //instance yield
+  		lstage_pushinstance(i);
+  	}
 }
 
 /*thread main loop*/

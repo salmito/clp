@@ -6,6 +6,10 @@
 #include <lauxlib.h>
 #include <lualib.h>
 
+#ifdef DEBUG
+
+#endif 
+
 static const struct luaL_Reg InstanceLibs[] = {
 		{"io",luaopen_io},
 		{"os",luaopen_os},
@@ -22,13 +26,12 @@ static const struct luaL_Reg InstanceLibs[] = {
 void lstage_initinstance(instance_t i) {
   	_DEBUG("Initiating instance %p\n",i);
 	lua_State *L=i->L;
-		lua_pushliteral(L,LSTAGE_INSTANCE_KEY);
+	lua_pushliteral(L,LSTAGE_INSTANCE_KEY);
 	lua_pushlightuserdata(L,i);
 	lua_settable(L, LUA_REGISTRYINDEX);	
 	lua_pushcfunction(L,luaopen_base);
    lua_pcall(L,0,0,0);
    lua_pushcfunction(L,luaopen_package);
-
    lua_pcall(L,0,1,0);
    lua_getfield(L,-1,"preload");
 	LUA_REGISTER(L,InstanceLibs);
@@ -41,22 +44,19 @@ void lstage_initinstance(instance_t i) {
 	                  "local i=a[2] "
 	                  "return require'coroutine'.wrap(function() while true do h(i:get()) end end)"
 	                  );
-	
 	lua_pushcfunction(L,mar_decode);
 	lua_pushlstring(L,i->stage->env,i->stage->env_len);
-	//stackDump(L,"init1");
 	lua_call(L,1,1);
 	lua_pushvalue(L,-1);
 	lua_setfield(L, LUA_REGISTRYINDEX,LSTAGE_ENV_KEY);
 	lstage_pushchannel(L,i->stage->input);
-	//stackDump(L,"init2");
 	lua_call(L,2,1);
 	lua_settable(L, LUA_REGISTRYINDEX);
-	i->flags=I_READY;
 	lua_getfield(L, LUA_REGISTRYINDEX,LSTAGE_ENV_KEY);
 	lua_getfield(L,-1,"e");
 	lua_setfield(L,LUA_REGISTRYINDEX,LSTAGE_ERRORFUNCTION_KEY);
 	lua_pop(L,1);
+	i->flags=I_READY;
 }
 
 instance_t lstage_newinstance(stage_t s) {

@@ -1,12 +1,13 @@
-print('package',package.cpath)
 local lstage=require'lstage'
 local p=print
---local d=debug.traceback
+local i={10}
 local s1=lstage.stage(function(str) 
-print(str)
+  i[1]=20
+  print(str,i[1])
+  
     error('some error '..str)
 end,
-function(...) print('error',...) return require'debug'.traceback() end
+function(...)  print('error',i[1],...) return require'debug'.traceback() end
 ):push("par2",'test'):push('par3')
 
 local function f()

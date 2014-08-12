@@ -40,7 +40,7 @@ end
 
 print("initiated",now()-thn)
 thn=now()
- print("finished",i,finish:get())
+ print("finished",finish:get())
 
 print("end",pool:size(),n,it,now()-thn,os.clock()-thn_clk)
 thn=lstage.now()

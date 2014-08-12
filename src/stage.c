@@ -414,7 +414,9 @@ lstage_newstage (lua_State * L)
 		  luaL_checktype (L, 1, LUA_TFUNCTION);
    	  if(lua_type(L,2) == LUA_TNUMBER) { 
 			  idle = luaL_optint (L, 2, 1);
-		  } else {
+		  } else if(lua_type(L,3) == LUA_TNUMBER) {
+  			  idle = luaL_optint (L, 3, 1);
+  		  } else {
 		  	idle=1;
 		  }
 		  lua_pushcfunction (L, mar_encode);
