@@ -15,8 +15,6 @@ typedef struct instance_s * instance_t;
 #define LSTAGE_ERRORFUNCTION_KEY "lstage-error-key"
 #define LSTAGE_ENV_KEY "lstage-env-key"
 
-
-
 enum instance_flag_t {
 	I_CREATED=0x0,
 	I_READY,

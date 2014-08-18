@@ -27,7 +27,7 @@ LFqueue_t lstage_lfqueue_new() {
    return q;
 }
 
-void lstage_lfqueue_push(LFqueue_t q,void ** source) {
+void lstage_lfqueue_push_(LFqueue_t q,void ** source) {
    __ptr p;
    p=*source;
    q->queue->push(p);
@@ -48,7 +48,7 @@ int lstage_lfqueue_try_pop_(LFqueue_t q, void ** destination) {
    return 0;
 }
 
-void lstage_lfqueue_pop(LFqueue_t q, void ** destination) {
+void lstage_lfqueue_pop_(LFqueue_t q, void ** destination) {
    __ptr dest;
    q->queue->pop(dest);
    *destination = dest;

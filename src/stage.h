@@ -19,16 +19,15 @@ typedef struct lstage_Stage * stage_t;
 #include "lf_queue.h"
 #include "pool.h"
 #include "channel.h"
+#include "threading.h"
 
 struct lstage_Stage {
-	LFqueue_t instances;
-	//LFqueue_t event_queue;
+   MUTEX_T intances_mutex;
+	volatile int instances;
 	channel_t input;
 	pool_t pool;
 	char * env;
 	size_t env_len;
-	volatile unsigned int flags;
-	volatile int priority;
    stage_t parent;
 };
 

@@ -67,15 +67,20 @@ static int channel_eq(lua_State * L) {
 
 static int channel_getsize(lua_State * L) {
 	channel_t s=lstage_tochannel(L,1);
+	lua_pushnumber(L,lstage_lfqueue_size(s->event_queue));
 	lua_pushnumber(L,lstage_lfqueue_getcapacity(s->event_queue));
-	return 1;
+	lua_pushnumber(L,lstage_lfqueue_size(s->wait_queue));
+	lua_pushnumber(L,lstage_lfqueue_getcapacity(s->wait_queue));
+	return 4;
 }
 
 static int channel_setsize(lua_State * L) {
 	channel_t s=lstage_tochannel(L,1);
 	luaL_checktype (L, 2, LUA_TNUMBER);
 	int capacity=lua_tointeger(L,2);
+	int waitsize=luaL_optint(L,3,-1);
 	lstage_lfqueue_setcapacity(s->event_queue,capacity);
+	lstage_lfqueue_setcapacity(s->wait_queue,waitsize);
 	lua_pushvalue(L,1);
 	return 1;
 }

@@ -18,7 +18,6 @@ G_PLUS_PLUS=g++
 OBJ=  lstage.o \
 		stage.o \
 		lf_queue.o \
-		p_queue.o \
 		marshal.o \
 		event.o \
 		instance.o \

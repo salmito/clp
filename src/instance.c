@@ -70,16 +70,6 @@ instance_t lstage_newinstance(stage_t s) {
 	return i;
 }
 
-void lstage_putinstance(instance_t i) {
-	_DEBUG("Putting instance %p\n",i);
-	i->flags=I_IDLE;
-	_DEBUG("instance is now I_IDLE %p lua_State %p (%u)\n",i,i->L,lstage_lfqueue_size(i->stage->instances));
-	if(!lstage_lfqueue_try_push(i->stage->instances,&i)) {
-		_DEBUG("Instances FULL, destroying %p\n",i);
-		lstage_destroyinstance(i);
-	}
-}
-
 void lstage_destroyinstance(instance_t i) {
    lua_close(i->L);
    if(i->ev) lstage_destroyevent(i->ev);

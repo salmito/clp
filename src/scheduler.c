@@ -4,20 +4,8 @@
 #include "threading.h"
 #include "event.h"
 #include "marshal.h"
-#include "p_queue.h"
 
 #include <time.h>
-
-/*static char * instance_state[]={
-	"CREATED",
-	"READY",
-	"RUNNING",
-	"WAITING_IO",
-	"TIMEOUT_IO",
-	"WAITING_EVENT",
-	"WAITING_CHANNEL",
-	"I_IDLE"
-};*/
 
 static int thread_tostring (lua_State *L) {
   thread_t * t = luaL_checkudata (L, 1, LSTAGE_THREAD_METATABLE);
@@ -169,7 +157,7 @@ static THREAD_RETURN_T THREAD_CALLCONV thread_mainloop(void *t_val) {
    while(1) {
    	_DEBUG("Thread %p wating for ready instaces\n",self);
    	self->state=THREAD_IDLE;
-      lstage_pqueue_pop(self->pool->ready,&i);
+      lstage_lfqueue_pop(self->pool->ready,(void**)&i);
       if(i==NULL) break;
      	_DEBUG("Thread %p got a ready instace %p\n",self,i);
      	self->state=THREAD_RUNNING;
@@ -212,12 +200,11 @@ static int thread_from_ptr (lua_State *L) {
 	*thread=ptr;
    get_metatable(L);
    lua_setmetatable(L,-2);   
-//   THREAD_CREATE(*thread, thread_mainloop, *thread, 0 );
    return 1;
 }
 
 void lstage_pushinstance(instance_t i) {
-	return lstage_pqueue_push(i->stage->pool->ready,(void **) &(i));
+	return lstage_lfqueue_push(i->stage->pool->ready, &i);
 }
 
 static const struct luaL_Reg LuaExportFunctions[] = {
