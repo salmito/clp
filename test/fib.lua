@@ -1,6 +1,9 @@
 local lstage=require'lstage'
 
-local v=tonumber(({...})[1]) or 10
+local _=require'_'
+
+local v=tonumber(({...})[1]) or 36
+local n=tonumber(({...})[2]) or 36
 
 local bench={
 	start=function(self)
@@ -17,47 +20,32 @@ local bench={
 }
 
 bench:start()
-local function fib(n)
-	if n==0 then return 0 end
-	if n==1 then return 1 end
-	return fib(n-1)+fib(n-2)
-end
 
 local cutoff=35
 
-lstage.channel()
-
-local memoize=function(f) return 
-	function(v)
-		ret=ret or {}
-		if not ret[v] then
-			ret[v]=f(v)
-		end
-		return ret[v]
-	end
+local function fib(n)
+	if n==0 or n==1 then return n end
+	return fib(n-1)+fib(n-2)
 end
 
+local s=_.future()
+s:wrap(function(n)
+	if n < cutoff then return fib(n) end
+	local f1,f2=s(n-1),s(n-2)
+	return f1:get()+f2:get()
+	--return s(v-1):get()+s(v-2):get()
+end)
 
-local s=lstage.stage(function(v,c)
-	i=(i or 0)+1
-	local fib_=memoize(fib)
-	if v < cutoff then return c:push(fib_(v)) end
-	local l=lstage.channel()
-	local r=lstage.channel()
-	lstage.self():push(v-1,l)
-	lstage.self():push(v-2,r)
-	c:push(l:get()+r:get())
-end):add(cutoff)
+s.s:add(n)
 
+s.s:pool():add(lstage.cpus()-1)
 
-
-local r=lstage.channel()
-
-s:pool():add(4)
-s(v,r)
-print(r:get())
+local f=s(v)
+local v1=f:get()
+print(v1)
 bench:clock('par')
---bench:start()
---local ret=fib(v)
---bench:clock('seq')
---print(ret)
+bench:start()
+local v2=fib(v)
+bench:clock('seq')
+print(v2)
+print('v1==v2',assert(v1==v2,"must be true"))

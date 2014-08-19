@@ -155,8 +155,9 @@ static THREAD_RETURN_T THREAD_CALLCONV thread_mainloop(void *t_val) {
    instance_t i=NULL;
    thread_t self=(thread_t)t_val;
    while(1) {
-   	_DEBUG("Thread %p wating for ready instaces\n",self);
+   	_DEBUG("Thread %p wating for ready instaces in %p (%p)\n",self,self->pool,self->pool->ready);
    	self->state=THREAD_IDLE;
+
       lstage_lfqueue_pop(self->pool->ready,(void**)&i);
       if(i==NULL) break;
      	_DEBUG("Thread %p got a ready instace %p\n",self,i);
