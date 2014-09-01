@@ -115,12 +115,10 @@ int lstage_pushevent(lua_State *L) {
    event_t ev=lstage_newevent(str,len);
    LOCK(c);
    if(c->waiting>0) {
-  	   UNLOCK(c);
-	   MUTEX_LOCK(&c->mutex);
 	   c->waiting--;
    	c->event=ev;
 	   SIGNAL_ONE(&c->cond);
-	   MUTEX_UNLOCK(&c->mutex);
+  	   UNLOCK(c);
    	lua_pushboolean(L,1);
       return 1;
    }
@@ -148,14 +146,61 @@ int lstage_pushevent(lua_State *L) {
 static int channel_tryget(lua_State *L) {
    channel_t c = lstage_tochannel(L,1);
 	event_t ev=NULL;
+   LOCK(c);
    if(lstage_lfqueue_try_pop(c->event_queue,(void **)&ev)) {
+	   UNLOCK(c);
       lua_pushboolean(L,1);
 		int n=lstage_restoreevent(L,ev);
 		lstage_destroyevent(ev);
 		return n+1;
 	}
-	return 0;
+	UNLOCK(c);
+	lua_pushnil(L);
+	return 1;
 }
+
+static int channel_trypush(lua_State *L) {
+	channel_t c = lstage_tochannel(L,1);
+   int top=lua_gettop(L);
+  	_DEBUG("CHANNEL PUSH EVENT: %p %d\n",c,top);
+   lua_pushcfunction(L,mar_encode);
+   lua_newtable(L);
+   int i;
+   for(i=2;i<=top;i++) {
+      lua_pushvalue(L,i);
+      lua_rawseti(L,-2,i-1);
+   }
+   lua_call(L,1,1);
+   size_t len;
+   const char * str=lua_tolstring(L,-1,&len);
+   lua_pop(L,1);
+   event_t ev=lstage_newevent(str,len);
+   LOCK(c);
+   if(c->waiting>0) {
+	   c->waiting--;
+   	c->event=ev;
+	   SIGNAL_ONE(&c->cond);
+  	   UNLOCK(c);
+   	lua_pushboolean(L,1);
+      return 1;
+   }
+   instance_t ins=NULL;
+   if(lstage_lfqueue_try_pop(c->wait_queue,&ins)) {
+  		UNLOCK(c);
+   	lua_settop(ins->L,0);
+   	ins->ev=ev;
+		ins->flags=I_READY;
+		lstage_pushinstance(ins);
+		lua_pushboolean(L,1);
+		return 1;
+   }
+   UNLOCK(c);
+   lstage_destroyevent(ev);
+   lua_pushnil(L);
+   lua_pushliteral(L,"Wait queue is empty");
+   return 2;
+}
+
 
 static int channel_getevent(lua_State *L) {
 	channel_t c = lstage_tochannel(L,1);
@@ -189,6 +234,7 @@ static int channel_getevent(lua_State *L) {
 	i->flags=I_WAITING_CHANNEL;
 	lstage_lfqueue_try_push(c->wait_queue,&i);
 	UNLOCK(c);
+	//stackDump(L,"Test");
 	return lua_yield(L,0);
 }
 
@@ -202,6 +248,7 @@ static const struct luaL_Reg ChannelMetaFunctions[] = {
 		{"get",channel_getevent},
 		{"push",lstage_pushevent},
 		{"tryget",channel_tryget},
+		{"trypush",channel_trypush},
 		{NULL,NULL}
 };
 

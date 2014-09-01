@@ -50,15 +50,14 @@ static int event_wait_io(lua_State * L) {
    double time=0.0l;  
    if(lua_type(L,3)==LUA_TNUMBER) {
       time=lua_tonumber(L,3);
-      if(time<=0.0l) luaL_error(L,"Invalid timeout value");
    }
   	lua_pushliteral(L,LSTAGE_INSTANCE_KEY);
 	lua_gettable(L, LUA_REGISTRYINDEX);
-	if(lua_type(L,-1)!=LUA_TLIGHTUSERDATA) luaL_error(L,"Cannot wait outside of a stage");
+	if(lua_type(L,-1)!=LUA_TLIGHTUSERDATA) luaL_error(L,"Cannot wait outside of an instance");
 	instance_t i=lua_touserdata(L,-1);
 	lua_pop(L,1);
 	i->flags=I_WAITING_IO;
-   if(time>0.0) {
+   if(time>=0.0) {
       struct timeval to={time,(((double)time-((int)time))*1000000.0L)};
       event_base_once(loop, fd, m, io_ready, i, &to);
    } else {
