@@ -40,6 +40,13 @@ function _.future(f,e)
 end
 
 
+function _.async(f,...)
+	return _.future(function(...)
+		return f(...)
+	end)(...)
+end
+
+
 local arg={...}
 if #arg==0 then
     print('_ test')
@@ -51,6 +58,10 @@ if #arg==0 then
     print(f:get())
     local f2=_.future(function() local f=s('inner') print('inner',f:get()) end)()
     print(f2:get())
+    
+    _.async(function (...) print('hello!',...) end,'test'):get()
+	 _.async(function (...) print('hello2!',...) end,'test2'):get()
+    --lstage.event.sleep(1)
 end
 
 

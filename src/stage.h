@@ -25,6 +25,7 @@ struct lstage_Stage {
    MUTEX_T intances_mutex;
 	volatile int instances;
 	channel_t input;
+	channel_t output;
 	pool_t pool;
 	char * env;
 	size_t env_len;

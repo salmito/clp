@@ -27,9 +27,38 @@ stage_input (lua_State * L)
 {
 	stage_t s = lstage_tostage (L, 1);
 	lstage_pushchannel(L,s->input);
-//	lua_pushnumber (L, lstage_lfqueue_getcapacity (s->event_queue));
 	return 1;
 }
+
+static int
+stage_setinput (lua_State * L)
+{
+	stage_t s = lstage_tostage (L, 1);
+	channel_t c=lstage_tochannel(L, 2);
+	s->input=c;
+	lua_pushvalue(L,1);
+	return 1;
+}
+
+
+static int
+stage_output (lua_State * L)
+{
+	stage_t s = lstage_tostage (L, 1);
+	lstage_pushchannel(L,s->output);
+	return 1;
+}
+
+static int
+stage_setoutput (lua_State * L)
+{
+	stage_t s = lstage_tostage (L, 1);
+	channel_t c=lstage_tochannel(L, 2);
+	s->output=c;
+	lua_pushvalue(L,1);
+	return 1;
+}
+
 
 static int
 get_max_instances (lua_State * L)
@@ -308,6 +337,9 @@ static const struct luaL_Reg StageMetaFunctions[] = {
 	{"wrap", stage_wrap},
 	{"push", stage_push},
 	{"input", stage_input},
+	{"setinput", stage_setinput},
+	{"setoutput", stage_setoutput},
+	{"output", stage_output},
 	{"add", stage_instantiate},
 	{"remove", stage_destroyinstances},
 	{"parent", stage_getparent},
@@ -406,6 +438,13 @@ lstage_newstage (lua_State * L)
 	lua_insert(L,-2);
 	lua_call(L,1,1);
 	stage->input=(channel_t)lua_touserdata(L,-1);
+	lua_pop(L,1);
+	lua_pushcfunction(L,lstage_channelnew);
+	lua_call(L,0,1);
+	lua_getfield(L,-1,"__id");
+	lua_insert(L,-2);
+	lua_call(L,1,1);
+	stage->output=(channel_t)lua_touserdata(L,-1);
 	lua_pop(L,1);
 	//initialize thread pool
 	stage->pool = lstage_defaultpool;
