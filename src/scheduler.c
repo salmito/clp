@@ -1,6 +1,5 @@
 #include "lstage.h"
 #include "scheduler.h"
-#include "instance.h"
 #include "threading.h"
 #include "event.h"
 #include "marshal.h"
@@ -139,7 +138,7 @@ static void thread_resume_instance(instance_t i) {
 	
 	if(lua_pcall(L,i->args,0, -(i->args+2))) {
      	const char * err=lua_tostring(L,-1);
-     	fprintf(stderr,"Error resuming instance (status: ready) %d: %s\n",-(i->args+2),err);
+     	fprintf(stderr,"Error resuming instance: %d: %s\n",-(i->args+2),err);
       lstage_destroyinstance(i);
       return;
    }

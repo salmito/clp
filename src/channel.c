@@ -1,5 +1,5 @@
 #include "channel.h"
-#include "instance.h"
+#include "stage.h"
 #include "event.h"
 #include "scheduler.h"
 #include "marshal.h"

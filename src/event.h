@@ -5,8 +5,6 @@
 
 typedef struct event_s * event_t;
 
-#include "instance.h"
-
 struct event_s {
    char * data;
    size_t len;

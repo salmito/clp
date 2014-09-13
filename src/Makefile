@@ -20,7 +20,6 @@ OBJ=  lstage.o \
 		lf_queue.o \
 		marshal.o \
 		event.o \
-		instance.o \
 		threading.o \
 		scheduler.o \
 		pool.o \

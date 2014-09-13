@@ -1,7 +1,6 @@
 #include "lstage.h"
 #include "event.h"
 #include "stage.h"
-#include "instance.h"
 #include "threading.h"
 #include "scheduler.h"
 #include "marshal.h"
