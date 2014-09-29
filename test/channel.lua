@@ -35,3 +35,15 @@ print('end',chan2:get())
 local chan3=lstage.channel(1)
 chan3:push(1)
 print('should fail',chan3:push(1))
+
+local chan4=lstage.channel():push(1):push(2):push(3)
+chan4:close()
+
+print(chan4:get(),chan4:get(),chan4:get())
+
+print(pcall(chan4.get,chan4)) --fail
+
+local s=lstage.stage(function() print('hello') end)
+
+s:input():close()
+lstage.event.sleep(1)

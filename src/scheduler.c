@@ -96,6 +96,12 @@ static void thread_resume_instance(instance_t i) {
 	lua_getfield(L,LUA_REGISTRYINDEX,STAGE_HANDLER_KEY);
 
 	switch(i->flags) {
+		case I_CLOSED:
+			lua_pop(L,1);
+			lua_getglobal(L,"error");
+			lua_pushliteral(L,"Channel was closed");
+			i->args=1;
+			break;
 		case I_READY:
 			if(i->ev) {
 		      lua_pushcfunction(L,mar_decode);
@@ -133,7 +139,7 @@ static void thread_resume_instance(instance_t i) {
 			i->args=1;
 		   break;
 		default:
-			return;
+			break;
 	}
 	
 	if(lua_pcall(L,i->args,0, -(i->args+2))) {

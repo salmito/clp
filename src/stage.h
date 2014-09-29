@@ -20,6 +20,15 @@ typedef struct lstage_Stage * stage_t;
 #include "pool.h"
 #include "channel.h"
 #include "threading.h"
+#include "event.h"
+#include "channel.h"
+
+#include "lua.h"
+
+#define LSTAGE_INSTANCE_KEY "lstage-instance-key"
+#define LSTAGE_HANDLER_KEY "lstage-handler-key"
+#define LSTAGE_ERRORFUNCTION_KEY "lstage-error-key"
+#define LSTAGE_ENV_KEY "lstage-env-key"
 
 struct lstage_Stage {
    MUTEX_T intances_mutex;
@@ -38,17 +47,6 @@ void lstage_buildstage(lua_State * L,stage_t t);
 //instance
 typedef struct instance_s * instance_t;
 
-#include "lstage.h"
-#include "stage.h"
-#include "event.h"
-#include "channel.h"
-
-#include "lua.h"
-
-#define LSTAGE_INSTANCE_KEY "lstage-instance-key"
-#define LSTAGE_HANDLER_KEY "lstage-handler-key"
-#define LSTAGE_ERRORFUNCTION_KEY "lstage-error-key"
-#define LSTAGE_ENV_KEY "lstage-env-key"
 
 enum instance_flag_t {
 	I_CREATED=0x0,
@@ -59,6 +57,7 @@ enum instance_flag_t {
 	I_WAITING_EVENT,
 	I_WAITING_CHANNEL,
 	I_IDLE,
+	I_CLOSED,
 };
 
 struct instance_s {

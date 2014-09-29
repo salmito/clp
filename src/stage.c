@@ -1,6 +1,5 @@
 #include "stage.h"
 #include "marshal.h"
-#include "event.h"
 #include "scheduler.h"
 
 #include <stdlib.h>

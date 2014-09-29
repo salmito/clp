@@ -85,6 +85,21 @@ static int channel_setsize(lua_State * L) {
 	return 1;
 }
 
+static int channel_close(lua_State * L) {
+	channel_t c=lstage_tochannel(L,1);
+   instance_t ins=NULL;
+   LOCK(c);
+   while(lstage_lfqueue_try_pop(c->wait_queue,&ins)) {
+  		ins->flags=I_CLOSED;
+ 		ins->args=0;
+		lstage_pushinstance(ins);
+   }
+   c->closed=1;
+  	UNLOCK(c);
+	lua_pushvalue(L,1);
+	return 1;
+}
+
 static int channel_tostring (lua_State *L) {
   channel_t * s = luaL_checkudata (L, 1, LSTAGE_CHANNEL_METATABLE);
   lua_pushfstring (L, "Channel (%p)", *s);
@@ -114,12 +129,18 @@ int lstage_pushevent(lua_State *L) {
    lua_pop(L,1);
    event_t ev=lstage_newevent(str,len);
    LOCK(c);
+   if(c->closed) {
+  	   UNLOCK(c);
+   	lua_pushnil(L);
+   	lua_pushliteral(L,"closed");
+   	return 2;
+   }
    if(c->waiting>0) {
 	   c->waiting--;
    	c->event=ev;
 	   SIGNAL_ONE(&c->cond);
   	   UNLOCK(c);
-   	lua_pushboolean(L,1);
+   	lua_pushvalue(L,1);
       return 1;
    }
    instance_t ins=NULL;
@@ -129,11 +150,11 @@ int lstage_pushevent(lua_State *L) {
    	ins->ev=ev;
 		ins->flags=I_READY;
 		lstage_pushinstance(ins);
-		lua_pushboolean(L,1);
+		lua_pushvalue(L,1);
 		return 1;
    } else if(lstage_lfqueue_try_push(c->event_queue,&ev)) {
 	   UNLOCK(c);
-      lua_pushboolean(L,1);
+      lua_pushvalue(L,1);
       return 1;
    } 
    UNLOCK(c);
@@ -176,6 +197,12 @@ static int channel_trypush(lua_State *L) {
    lua_pop(L,1);
    event_t ev=lstage_newevent(str,len);
    LOCK(c);
+   if(c->closed) {
+	   UNLOCK(c);
+   	lua_pushnil(L);
+   	lua_pushliteral(L,"closed");
+   	return 2;
+   }
    if(c->waiting>0) {
 	   c->waiting--;
    	c->event=ev;
@@ -215,6 +242,11 @@ static int channel_getevent(lua_State *L) {
 		lstage_destroyevent(ev);
 		return n;
 	}
+	if(c->closed) {
+	   UNLOCK(c);
+	   luaL_error(L,"Channel was closed");
+	   return 0;
+	}
 	if(lua_type(L,-1)!=LUA_TLIGHTUSERDATA) {
   		UNLOCK(c);
 		MUTEX_LOCK(&c->mutex);
@@ -246,6 +278,7 @@ static const struct luaL_Reg ChannelMetaFunctions[] = {
 		{"size",channel_getsize},
 		{"setsize",channel_setsize},
 		{"get",channel_getevent},
+		{"close",channel_close},
 		{"push",lstage_pushevent},
 		{"tryget",channel_tryget},
 		{"trypush",channel_trypush},
@@ -289,6 +322,7 @@ int lstage_channelnew(lua_State *L) {
 	t->waiting=0;
 	t->event=NULL;
 	t->lock=0;
+	t->closed=0;
 	t->event_queue=lstage_lfqueue_new();
 	t->wait_queue=lstage_lfqueue_new();
 	lstage_lfqueue_setcapacity(t->event_queue,size);

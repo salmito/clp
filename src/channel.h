@@ -18,7 +18,8 @@ struct channel_s {
 	SIGNAL_T cond;
 	volatile int waiting;
 	event_t event;
-	int lock;
+	volatile int lock;
+	volatile int closed;
 };
 
 //channel_t * lstage_newchannel(lua_State *L);
