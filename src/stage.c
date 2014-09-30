@@ -562,10 +562,9 @@ void lstage_initinstance(instance_t i) {
 	lua_pushliteral(L,STAGE_HANDLER_KEY);
 	luaL_loadstring(L,"local a={...} "
 							"local h=a[1].f "
-							"a[1].e = a[1].e or require'debug'.traceback "
-	                  "local i=a[2] "
-	                  "local o=a[3] "
-	                  "return require'coroutine'.wrap(function() while true do o:push(h(i:get())) end end)"
+  	                  "local s=a[4] "
+							"a[1].e = a[1].e or function(e) s:input():close() s:output():close() return e end "
+	                  "return require'coroutine'.wrap(function() while true do s:output():push(h(s:input():get())) end end)"
 	                  );
 	lua_pushcfunction(L,mar_decode);
 	lua_pushlstring(L,i->stage->env,i->stage->env_len);
@@ -574,7 +573,8 @@ void lstage_initinstance(instance_t i) {
 	lua_setfield(L, LUA_REGISTRYINDEX,LSTAGE_ENV_KEY);
 	lstage_pushchannel(L,i->stage->input);
 	lstage_pushchannel(L,i->stage->output);
-	lua_call(L,3,1);
+	lstage_buildstage(L,i->stage);
+	lua_call(L,4,1);
 	lua_settable(L, LUA_REGISTRYINDEX);
 	lua_getfield(L, LUA_REGISTRYINDEX,LSTAGE_ENV_KEY);
 	lua_getfield(L,-1,"e");

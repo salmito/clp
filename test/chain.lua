@@ -36,7 +36,6 @@ end
 
 bench:clock('serial lua')
 
-
 local s1=lstage.stage(f)
 local s2=lstage.stage(f2)
 

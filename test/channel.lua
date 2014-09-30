@@ -4,7 +4,7 @@ local s1,s2,s3=lstage.stage(),lstage.stage(),lstage.stage()
 print('init',lstage.pool:size())
 lstage.pool:kill()
 print('init',lstage.pool:size())
-lstage.pool:add()
+lstage.pool:add(lstage.cpus()-1)
 print('init',lstage.pool:size())
 
 local chan=lstage.channel()
@@ -43,7 +43,7 @@ print(chan4:get(),chan4:get(),chan4:get())
 
 print(pcall(chan4.get,chan4)) --fail
 
-local s=lstage.stage(function() print('hello') end)
+local s=lstage.stage(function(msg) print('hello',msg) return msg end):add(4)('john')('paul')('george')('ringo')
 
 s:input():close()
-lstage.event.sleep(1)
+while true do print('resp',s:output():get()) end
