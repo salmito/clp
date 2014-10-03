@@ -138,10 +138,15 @@ static void thread_resume_instance(instance_t i) {
 			lua_pushboolean(L,0);
 			i->args=1;
 		   break;
-		default:
+		case I_WAITING_WRITE:
+			i->flags=I_READY;
+			lua_pushboolean(L,1);
+			i->args=1;		
 			break;
+		default:
+			lua_pop(L,2);
+			return;
 	}
-	
 	if(lua_pcall(L,i->args,0, -(i->args+2))) {
      	const char * err=lua_tostring(L,-1);
      	fprintf(stderr,"Error resuming instance: %d: %s\n",-(i->args+2),err);

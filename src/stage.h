@@ -58,6 +58,7 @@ enum instance_flag_t {
 	I_WAITING_CHANNEL,
 	I_IDLE,
 	I_CLOSED,
+	I_WAITING_WRITE,
 };
 
 struct instance_s {

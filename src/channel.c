@@ -69,8 +69,8 @@ static int channel_getsize(lua_State * L) {
 	channel_t s=lstage_tochannel(L,1);
 	lua_pushnumber(L,lstage_lfqueue_size(s->event_queue));
 	lua_pushnumber(L,lstage_lfqueue_getcapacity(s->event_queue));
-	lua_pushnumber(L,lstage_lfqueue_size(s->wait_queue));
-	lua_pushnumber(L,lstage_lfqueue_getcapacity(s->wait_queue));
+	lua_pushnumber(L,lstage_lfqueue_size(s->read_queue));
+	lua_pushnumber(L,lstage_lfqueue_getcapacity(s->read_queue));
 	return 4;
 }
 
@@ -80,7 +80,7 @@ static int channel_setsize(lua_State * L) {
 	int capacity=lua_tointeger(L,2);
 	int waitsize=luaL_optint(L,3,-1);
 	lstage_lfqueue_setcapacity(s->event_queue,capacity);
-	lstage_lfqueue_setcapacity(s->wait_queue,waitsize);
+	lstage_lfqueue_setcapacity(s->read_queue,waitsize);
 	lua_pushvalue(L,1);
 	return 1;
 }
@@ -89,7 +89,12 @@ static int channel_close(lua_State * L) {
 	channel_t c=lstage_tochannel(L,1);
    instance_t ins=NULL;
    LOCK(c);
-   while(lstage_lfqueue_try_pop(c->wait_queue,&ins)) {
+   while(lstage_lfqueue_try_pop(c->read_queue,&ins)) {
+  		ins->flags=I_CLOSED;
+ 		ins->args=0;
+		lstage_pushinstance(ins);
+   }
+   while(lstage_lfqueue_try_pop(c->write_queue,&ins)) {
   		ins->flags=I_CLOSED;
  		ins->args=0;
 		lstage_pushinstance(ins);
@@ -127,37 +132,56 @@ int lstage_pushevent(lua_State *L) {
    size_t len;
    const char * str=lua_tolstring(L,-1,&len);
    lua_pop(L,1);
+   instance_t ins=NULL;
    event_t ev=lstage_newevent(str,len);
+  	lua_pushliteral(L,LSTAGE_INSTANCE_KEY);
+	lua_gettable(L, LUA_REGISTRYINDEX);
    LOCK(c);
    if(c->closed) {
   	   UNLOCK(c);
+  	   _DEBUG("channel closed\n");
+  	   lua_pop(L,1);
    	lua_pushnil(L);
    	lua_pushliteral(L,"closed");
    	return 2;
-   }
-   if(c->waiting>0) {
+   } if(c->waiting) {
+  	   _DEBUG("main process waiting\n");
 	   c->waiting--;
    	c->event=ev;
 	   SIGNAL_ONE(&c->cond);
   	   UNLOCK(c);
-   	lua_pushvalue(L,1);
+  	   lua_pop(L,1);
+   	lua_pushboolean(L,1);
       return 1;
    }
-   instance_t ins=NULL;
-   if(lstage_lfqueue_try_pop(c->wait_queue,&ins)) {
+   if(lstage_lfqueue_try_pop(c->read_queue,&ins)) {
   		UNLOCK(c);
+  	   _DEBUG("got waiter\n");
    	lua_settop(ins->L,0);
    	ins->ev=ev;
 		ins->flags=I_READY;
 		lstage_pushinstance(ins);
-		lua_pushvalue(L,1);
+  	   lua_pop(L,1);
+		lua_pushboolean(L,1);
 		return 1;
    } else if(lstage_lfqueue_try_push(c->event_queue,&ev)) {
 	   UNLOCK(c);
-      lua_pushvalue(L,1);
+  	   _DEBUG("used event queue\n");
+  	   lua_pop(L,1);
+      lua_pushboolean(L,1);
       return 1;
-   } 
-   UNLOCK(c);
+   } else if(c->sync) {
+  	   _DEBUG("channel closed\n");
+	   ins=lua_touserdata(L,-1);
+		lua_pop(L,1);
+		ins->ev=ev;
+		ins->flags=I_WAITING_CHANNEL;
+		lstage_lfqueue_try_push(c->write_queue,&ins);
+		UNLOCK(c);
+		return lua_yield(L,0);
+	}
+	UNLOCK(c);
+   _DEBUG("async queue full\n");
    lstage_destroyevent(ev);
    lua_pushnil(L);
    lua_pushliteral(L,"Event queue is full");
@@ -212,7 +236,7 @@ static int channel_trypush(lua_State *L) {
       return 1;
    }
    instance_t ins=NULL;
-   if(lstage_lfqueue_try_pop(c->wait_queue,&ins)) {
+   if(lstage_lfqueue_try_pop(c->read_queue,&ins)) {
   		UNLOCK(c);
    	lua_settop(ins->L,0);
    	ins->ev=ev;
@@ -235,8 +259,21 @@ static int channel_getevent(lua_State *L) {
 	_DEBUG("CHANNEL GET EVENT: %p\n",c);
 	lua_pushliteral(L,LSTAGE_INSTANCE_KEY);
 	lua_gettable(L, LUA_REGISTRYINDEX);
+	instance_t i=NULL;
    LOCK(c);
 	if(lstage_lfqueue_try_pop(c->event_queue,&ev)) {
+  	   _DEBUG("got event\n");
+		if(lstage_lfqueue_try_pop(c->write_queue,&i)) {
+	  		UNLOCK(c);
+	  	   _DEBUG("has writers, escalate its event\n");
+			lstage_lfqueue_try_push(c->event_queue,&i->ev);
+			i->ev=NULL;
+			i->flags=I_WAITING_WRITE;
+			lstage_pushinstance(i);
+			int n=lstage_restoreevent(L,ev);
+			lstage_destroyevent(ev);
+			return n;
+		}
   		UNLOCK(c);
 		int n=lstage_restoreevent(L,ev);
 		lstage_destroyevent(ev);
@@ -261,10 +298,10 @@ static int channel_getevent(lua_State *L) {
 		MUTEX_UNLOCK(&c->mutex);
 		return n;
 	}
-	instance_t i=lua_touserdata(L,-1);
+	i=lua_touserdata(L,-1);
 	lua_pop(L,1);
 	i->flags=I_WAITING_CHANNEL;
-	lstage_lfqueue_try_push(c->wait_queue,&i);
+	lstage_lfqueue_try_push(c->read_queue,&i);
 	UNLOCK(c);
 	//stackDump(L,"Test");
 	return lua_yield(L,0);
@@ -317,6 +354,10 @@ void lstage_pushchannel(lua_State * L,channel_t t) {
 int lstage_channelnew(lua_State *L) {
 	channel_t t=malloc(sizeof(struct channel_s));
 	int size=luaL_optint(L, 1, -1);
+	int sync=0;
+	if(lua_type(L,2)==LUA_TBOOLEAN) {
+		sync=lua_toboolean(L, 2);
+	}
 	SIGNAL_INIT(&t->cond);
 	MUTEX_INIT(&t->mutex);
 	t->waiting=0;
@@ -324,9 +365,11 @@ int lstage_channelnew(lua_State *L) {
 	t->lock=0;
 	t->closed=0;
 	t->event_queue=lstage_lfqueue_new();
-	t->wait_queue=lstage_lfqueue_new();
+	t->read_queue=lstage_lfqueue_new();
+	t->write_queue=lstage_lfqueue_new();
+	t->sync=sync;
 	lstage_lfqueue_setcapacity(t->event_queue,size);
-	lstage_lfqueue_setcapacity(t->wait_queue,-1);
+	lstage_lfqueue_setcapacity(t->read_queue,-1);
 	lstage_pushchannel(L,t);
    return 1;
 }

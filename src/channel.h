@@ -13,13 +13,15 @@ typedef struct channel_s  * channel_t;
 
 struct channel_s {
 	LFqueue_t event_queue;
-	LFqueue_t wait_queue;
+	LFqueue_t read_queue;
+	LFqueue_t write_queue;
 	MUTEX_T mutex;
 	SIGNAL_T cond;
 	volatile int waiting;
 	event_t event;
 	volatile int lock;
 	volatile int closed;
+	int sync;
 };
 
 //channel_t * lstage_newchannel(lua_State *L);
