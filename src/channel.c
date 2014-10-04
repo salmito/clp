@@ -354,9 +354,9 @@ void lstage_pushchannel(lua_State * L,channel_t t) {
 int lstage_channelnew(lua_State *L) {
 	channel_t t=malloc(sizeof(struct channel_s));
 	int size=luaL_optint(L, 1, -1);
-	int sync=0;
+	int sync=1;
 	if(lua_type(L,2)==LUA_TBOOLEAN) {
-		sync=lua_toboolean(L, 2);
+		sync=!lua_toboolean(L, 2);
 	}
 	SIGNAL_INIT(&t->cond);
 	MUTEX_INIT(&t->mutex);
