@@ -8,6 +8,9 @@
 #include "pool.h"
 #include "threading.h"
 
+#ifdef _WIN32
+#define sleep(a) Sleep(a * 1000)
+#else
 
 #ifdef DEBUG
 //can be found here  http://www.lua.org/pil/24.2.3.html
