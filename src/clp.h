@@ -11,7 +11,7 @@
 #ifndef _CLP_H
 #define _CLP_H
 
-#define CLP_VERSION "1.0.0-beta"
+#define CLP_VERSION "0.1.0"
 
 #include <lua.h>
 #include <lauxlib.h>
