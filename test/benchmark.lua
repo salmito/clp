@@ -1,20 +1,20 @@
-local lstage=require "lstage"
+local clp=require "clp"
 
---lstage.pool:add(lstage.cpus())
+--clp.pool:add(clp.cpus())
 
-local pool=lstage.pool
+local pool=clp.pool
 local arg={...}
-pool:add(arg[3] or lstage.cpus()-1)
+pool:add(arg[3] or clp.cpus()-1)
 local n=tonumber(arg[1]) or 100
 local it=tonumber(arg[2]) or 100000
 
 local bench=function () return {
 	start=function(self)
-		self.t=lstage.now()
+		self.t=clp.now()
 		self.c=os.clock()
 	end,
 	stop=function(self)
-		return lstage.now()-self.t,os.clock()-self.c
+		return clp.now()-self.t,os.clock()-self.c
 	end,
 	clock=function(self,str)
 		local t,c=self:stop()
@@ -28,9 +28,9 @@ bench=bench()
 bench:start()
 startup:start()
 
-local finish=lstage.channel()
+local finish=clp.channel()
 
-local s2=lstage.stage(function()
+local s2=clp.task(function()
 	i=(i or 0) +1
 	if i==n then
 		print('finish')
@@ -51,8 +51,8 @@ local s={}
 local str='\t'..n..'\t'..it..'\t'
 
 
---local out=lstage.channel()
-local s1=lstage.stage(f,n)
+--local out=clp.channel()
+local s1=clp.task(f,n)
 
 for i=1,n do
 	s1:push()

@@ -1,4 +1,4 @@
-#include "stage.h"
+#include "task.h"
 #include "marshal.h"
 #include "scheduler.h"
 
@@ -10,28 +10,28 @@
 
 
 static void get_stagemetatale (lua_State * L);
-extern pool_t lstage_defaultpool;
-stage_t
-lstage_tostage (lua_State * L, int i)
+extern pool_t clp_defaultpool;
+task_t
+clp_totask (lua_State * L, int i)
 {
-	stage_t *s = luaL_checkudata (L, i, LSTAGE_STAGE_METATABLE);
+	task_t *s = luaL_checkudata (L, i, CLP_TASK_METATABLE);
 	luaL_argcheck (L, s != NULL, i, "Stage expected");
 	return *s;
 }
 
 static int
-stage_input (lua_State * L)
+task_input (lua_State * L)
 {
-	stage_t s = lstage_tostage (L, 1);
-	lstage_pushchannel(L,s->input);
+	task_t s = clp_totask (L, 1);
+	clp_pushchannel(L,s->input);
 	return 1;
 }
 
 static int
-stage_setinput (lua_State * L)
+task_setinput (lua_State * L)
 {
-	stage_t s = lstage_tostage (L, 1);
-	channel_t c=lstage_tochannel(L, 2);
+	task_t s = clp_totask (L, 1);
+	channel_t c=clp_tochannel(L, 2);
 	s->input=c;
 	lua_pushvalue(L,1);
 	return 1;
@@ -39,18 +39,18 @@ stage_setinput (lua_State * L)
 
 
 static int
-stage_output (lua_State * L)
+task_output (lua_State * L)
 {
-	stage_t s = lstage_tostage (L, 1);
-	lstage_pushchannel(L,s->output);
+	task_t s = clp_totask (L, 1);
+	clp_pushchannel(L,s->output);
 	return 1;
 }
 
 static int
-stage_setoutput (lua_State * L)
+task_setoutput (lua_State * L)
 {
-	stage_t s = lstage_tostage (L, 1);
-	channel_t c=lstage_tochannel(L, 2);
+	task_t s = clp_totask (L, 1);
+	channel_t c=clp_tochannel(L, 2);
 	s->output=c;
 	lua_pushvalue(L,1);
 	return 1;
@@ -60,18 +60,18 @@ stage_setoutput (lua_State * L)
 static int
 get_max_instances (lua_State * L)
 {
-	stage_t s = lstage_tostage (L, 1);
+	task_t s = clp_totask (L, 1);
 	lua_pushnumber (L, s->instances);
 	return 1;
 }
 
 static int
-stage_push (lua_State * L)
+task_push (lua_State * L)
 {
-	stage_t s = lstage_tostage (L, 1);
-	lua_pushcfunction(L,lstage_pushevent);
+	task_t s = clp_totask (L, 1);
+	lua_pushcfunction(L,clp_pushevent);
 	lua_insert(L,2);
-	lstage_pushchannel(L,s->input);
+	clp_pushchannel(L,s->input);
 	lua_insert(L,3);
 	lua_call(L,lua_gettop(L)-2,LUA_MULTRET);
 	if(lua_type(L,-1)==LUA_TBOOLEAN) {
@@ -81,14 +81,14 @@ stage_push (lua_State * L)
 }
 
 static int
-stage_getenv (lua_State * L)
+task_getenv (lua_State * L)
 {
-	lua_getfield(L, LUA_REGISTRYINDEX, LSTAGE_HANDLER_KEY);
+	lua_getfield(L, LUA_REGISTRYINDEX, CLP_HANDLER_KEY);
 	if(lua_type(L,-1)!=LUA_TNIL) {
 		return 1;
 	}
 	lua_pop(L,1);
-	stage_t s = lstage_tostage (L, 1);
+	task_t s = clp_totask (L, 1);
 	if (s->env == NULL){
 		lua_pushnil (L);
 	} else {
@@ -100,21 +100,21 @@ stage_getenv (lua_State * L)
 }
 
 static int
-stage_eq (lua_State * L)
+task_eq (lua_State * L)
 {
-	stage_t s1 = lstage_tostage (L, 1);
-	stage_t s2 = lstage_tostage (L, 2);
+	task_t s1 = clp_totask (L, 1);
+	task_t s2 = clp_totask (L, 2);
 	lua_pushboolean (L, s1 == s2);
 	return 1;
 }
 
-static int stage_instantiate (lua_State * L);
+static int task_instantiate (lua_State * L);
 
 static int
-stage_wrap (lua_State * L)
+task_wrap (lua_State * L)
 {
 	int top=lua_gettop(L);
-	stage_t s = lstage_tostage (L, 1);
+	task_t s = clp_totask (L, 1);
 	if (s->env != NULL)
 		luaL_error (L, "Stage handMUTEX_INITler already set");
 
@@ -139,7 +139,7 @@ stage_wrap (lua_State * L)
 	s->env_len = len;
 	lua_pop (L, 1);
 
-	lua_pushcfunction (L, stage_instantiate);
+	lua_pushcfunction (L, task_instantiate);
 	lua_pushvalue (L, 1);
 	lua_pushnumber (L, 1);
 	lua_call (L, 2, 0);
@@ -150,17 +150,17 @@ stage_wrap (lua_State * L)
 
 /*tostring method*/
 static int
-stage_tostring (lua_State * L)
+task_tostring (lua_State * L)
 {
-	stage_t *s = luaL_checkudata (L, 1, LSTAGE_STAGE_METATABLE);
+	task_t *s = luaL_checkudata (L, 1, CLP_TASK_METATABLE);
 	lua_pushfstring (L, "Stage (%p)", *s);
 	return 1;
 }
 
 static int
-stage_destroyinstances (lua_State * L)
+task_destroyinstances (lua_State * L)
 {
-	stage_t s = lstage_tostage (L, 1);
+	task_t s = clp_totask (L, 1);
 	int n = luaL_optint(L, 2, 0);
 	if (n < 0)
 		luaL_error (L, "Argument must be positive");
@@ -178,9 +178,9 @@ stage_destroyinstances (lua_State * L)
 }
 
 static int
-stage_instantiate (lua_State * L)
+task_instantiate (lua_State * L)
 {
-	stage_t s = lstage_tostage (L, 1);
+	task_t s = clp_totask (L, 1);
 	if (s->pool == NULL)
 		luaL_error (L, "Stage must be associated to a pool");
 	if (s->env == NULL)
@@ -197,7 +197,7 @@ stage_instantiate (lua_State * L)
 	MUTEX_LOCK(&s->intances_mutex);
 	s->instances += n;
 	for (i = 0; i < n; i++) {
-		  (void) lstage_newinstance (s);
+		  (void) clp_newinstance (s);
 	}
    MUTEX_UNLOCK(&s->intances_mutex);
 
@@ -208,19 +208,19 @@ stage_instantiate (lua_State * L)
 }
 
 static int
-stage_ptr (lua_State * L)
+task_ptr (lua_State * L)
 {
-	stage_t *s = luaL_checkudata (L, 1, LSTAGE_STAGE_METATABLE);
+	task_t *s = luaL_checkudata (L, 1, CLP_TASK_METATABLE);
 	lua_pushlightuserdata (L, *s);
 	return 1;
 }
 
-#define LSTAGE_STAGE_CACHE "lstage-stage-cache"
+#define CLP_TASK_CACHE "clp-task-cache"
 
 static void
-stage_getcached(lua_State * L, stage_t t)
+task_getcached(lua_State * L, task_t t)
 {
-	lua_pushliteral(L,LSTAGE_STAGE_CACHE);
+	lua_pushliteral(L,CLP_TASK_CACHE);
 	lua_gettable(L,LUA_REGISTRYINDEX);
 	if(!lua_istable(L,-1)) {
 		lua_pop(L,1);
@@ -229,7 +229,7 @@ stage_getcached(lua_State * L, stage_t t)
 		lua_pushliteral(L,"v");
 		lua_setfield(L,-2,"__mode");
 		lua_setmetatable(L,-2);
-		lua_pushliteral(L,LSTAGE_STAGE_CACHE);
+		lua_pushliteral(L,CLP_TASK_CACHE);
 		lua_pushvalue(L,-2);
 		lua_settable(L,LUA_REGISTRYINDEX);
 	}
@@ -239,9 +239,9 @@ stage_getcached(lua_State * L, stage_t t)
 }
 
 static void
-stage_putcache(lua_State * L, stage_t t)
+task_putcache(lua_State * L, task_t t)
 {
-	lua_pushliteral(L,LSTAGE_STAGE_CACHE);
+	lua_pushliteral(L,CLP_TASK_CACHE);
 	lua_gettable(L,LUA_REGISTRYINDEX);
 	if(!lua_isuserdata(L,-1)) {
 		lua_pop(L,1);
@@ -250,7 +250,7 @@ stage_putcache(lua_State * L, stage_t t)
 		lua_pushliteral(L,"v");
 		lua_setfield(L,-2,"__mode");
 		lua_setmetatable(L,-2);
-		lua_pushliteral(L,LSTAGE_STAGE_CACHE);
+		lua_pushliteral(L,CLP_TASK_CACHE);
 		lua_pushvalue(L,-2);
 		lua_settable(L,LUA_REGISTRYINDEX);
 	}
@@ -261,87 +261,87 @@ stage_putcache(lua_State * L, stage_t t)
 }
 
 void
-lstage_buildstage (lua_State * L, stage_t t)
+clp_buildtask (lua_State * L, task_t t)
 {
 	_DEBUG("Building stage %p\n",t);
-	stage_getcached(L,t);
+	task_getcached(L,t);
 	if(lua_type(L,-1)==LUA_TUSERDATA) 
 		return;
 	lua_pop(L,1);
-	stage_t *s = lua_newuserdata (L, sizeof (stage_t *));
+	task_t *s = lua_newuserdata (L, sizeof (task_t *));
 	*s = t;
 	get_stagemetatale (L);
 	lua_setmetatable (L, -2);
-	stage_putcache(L,t);
+	task_putcache(L,t);
 	_DEBUG("Created userdata %p\n",t);
 
 }
 
 static int
-stage_getpool (lua_State * L)
+task_getpool (lua_State * L)
 {
 	if(lua_gettop(L)>1) {
 		luaL_error(L,"To many arguments");
 	}
 	
-	stage_t s = lstage_tostage (L, 1);
+	task_t s = clp_totask (L, 1);
 	if (s->pool)
-		lstage_buildpool (L, s->pool);
+		clp_buildpool (L, s->pool);
 	else
 		lua_pushnil (L);
 	return 1;
 }
 
 static int
-stage_setpool (lua_State * L)
+task_setpool (lua_State * L)
 {
-	stage_t s = lstage_tostage (L, 1);
-	pool_t p = lstage_topool (L, 2);
+	task_t s = clp_totask (L, 1);
+	pool_t p = clp_topool (L, 2);
 	s->pool = p;
 	lua_pop(L,1);
 	return 1;
 }
 
 static int
-stage_getparent (lua_State * L)
+task_getparent (lua_State * L)
 {
-	stage_t s = lstage_tostage (L, 1);
+	task_t s = clp_totask (L, 1);
 	if (s->parent)
-		lstage_buildstage (L, s->parent);
+		clp_buildtask (L, s->parent);
 	else
 		lua_pushnil (L);
 	return 1;
 }
 
 static int
-stage_gc (lua_State * L)
+task_gc (lua_State * L)
 {
-//	stage_t s = lstage_tostage (L, 1);
+//	task_t s = clp_totask (L, 1);
 //	_DEBUG("Destroying stage %p\n",s);
 	return 0;
 }
 
 
 static const struct luaL_Reg StageMetaFunctions[] = {
-	{"__eq", stage_eq},
-	{"__gc", stage_gc},
-	{"__tostring", stage_tostring},
-	{"__call", stage_push},
-	{"__id", stage_ptr},
+	{"__eq", task_eq},
+	{"__gc", task_gc},
+	{"__tostring", task_tostring},
+	{"__call", task_push},
+	{"__id", task_ptr},
 		
 	{"size", get_max_instances},
-	{"env", stage_getenv},
-	{"wrap", stage_wrap},
-	{"push", stage_push},
-	{"input", stage_input},
-	{"setinput", stage_setinput},
-	{"setoutput", stage_setoutput},
-	{"output", stage_output},
-	{"add", stage_instantiate},
-	{"remove", stage_destroyinstances},
-	{"parent", stage_getparent},
-	{"pool", stage_getpool},
-	{"setpool", stage_setpool},
+	{"env", task_getenv},
+	{"wrap", task_wrap},
+	{"push", task_push},
+	{"input", task_input},
+	{"setinput", task_setinput},
+	{"setoutput", task_setoutput},
+	{"output", task_output},
+	{"add", task_instantiate},
+	{"remove", task_destroyinstances},
+	{"parent", task_getparent},
+	{"pool", task_getpool},
+	{"setpool", task_setpool},
 	
 	{NULL, NULL}
 };
@@ -349,23 +349,23 @@ static const struct luaL_Reg StageMetaFunctions[] = {
 static void
 get_stagemetatale (lua_State * L)
 {
-	luaL_getmetatable (L, LSTAGE_STAGE_METATABLE);
+	luaL_getmetatable (L, CLP_TASK_METATABLE);
 	if (lua_isnil (L, -1))
 	  {
 		  lua_pop (L, 1);
-		  luaL_newmetatable (L, LSTAGE_STAGE_METATABLE);
+		  luaL_newmetatable (L, CLP_TASK_METATABLE);
 		  LUA_REGISTER (L, StageMetaFunctions);
 		  lua_pushvalue (L, -1);
 		  lua_setfield (L, -2, "__index");
 		  luaL_loadstring (L,
-				   "local ptr=(...):__id() return function() return require'lstage.stage'.get(ptr) end");
+				   "local ptr=(...):__id() return function() return require'clp.task'.get(ptr) end");
 		  lua_setfield (L, -2, "__wrap");
 	  }
 }
 
 
 static int
-stage_isstage (lua_State * L)
+task_isstage (lua_State * L)
 {
 	lua_getmetatable (L, 1);
 	get_stagemetatale (L);
@@ -383,16 +383,16 @@ stage_isstage (lua_State * L)
 }
 
 static int
-lstage_newstage (lua_State * L)
+clp_newtask (lua_State * L)
 {
 	int idle = 0;
-	stage_t *stage_ = NULL;
+	task_t *task_ = NULL;
 	int top=lua_gettop(L);
 	if (top==0) {
-		  stage_ = lua_newuserdata (L, sizeof (stage_t *));
-		  (*stage_) = malloc (sizeof (struct lstage_Stage));
-		  (*stage_)->env = NULL;
-		  (*stage_)->env_len = 0;
+		  task_ = lua_newuserdata (L, sizeof (task_t *));
+		  (*task_) = malloc (sizeof (struct clp_Task));
+		  (*task_)->env = NULL;
+		  (*task_)->env_len = 0;
 	}
 	else {
 		  luaL_checktype (L, 1, LUA_TFUNCTION);
@@ -416,27 +416,27 @@ lstage_newstage (lua_State * L)
 		  size_t len = 0;
 		  env = lua_tolstring (L, -1, &len);
 		  lua_pop (L, 1);
-		  stage_ = lua_newuserdata (L, sizeof (stage_t *));
-		  (*stage_) = calloc (1, sizeof (struct lstage_Stage));
+		  task_ = lua_newuserdata (L, sizeof (task_t *));
+		  (*task_) = calloc (1, sizeof (struct clp_Task));
 		  char *envcp = malloc (len + 1);
 		  envcp[len] = '\0';
 		  memcpy (envcp, env, len + 1);
-		  (*stage_)->env = envcp;
-		  (*stage_)->env_len = len; 
+		  (*task_)->env = envcp;
+		  (*task_)->env_len = len; 
 	  }
-	stage_t stage = *stage_;
+	task_t stage = *task_;
    //instance queue initialization
    stage->instances = 0;
 	MUTEX_INIT(&stage->intances_mutex);
 	//create input channel
-	lua_pushcfunction(L,lstage_channelnew);
+	lua_pushcfunction(L,clp_channelnew);
 	lua_call(L,0,1);
 	lua_getfield(L,-1,"__id");
 	lua_insert(L,-2);
 	lua_call(L,1,1);
 	stage->input=(channel_t)lua_touserdata(L,-1);
 	lua_pop(L,1);
-	lua_pushcfunction(L,lstage_channelnew);
+	lua_pushcfunction(L,clp_channelnew);
 	lua_call(L,0,1);
 	lua_getfield(L,-1,"__id");
 	lua_insert(L,-2);
@@ -444,20 +444,20 @@ lstage_newstage (lua_State * L)
 	stage->output=(channel_t)lua_touserdata(L,-1);
 	lua_pop(L,1);
 	//initialize thread pool
-	stage->pool = lstage_defaultpool;
+	stage->pool = clp_defaultpool;
 	//assign metatable
 	get_stagemetatale (L);
 	lua_setmetatable (L, -2);
 	//initialize intances
 	if (idle > 0) {
-		  lua_pushcfunction (L, stage_instantiate);
+		  lua_pushcfunction (L, task_instantiate);
 		  lua_pushvalue (L, -2);
 		  lua_pushnumber (L, idle);
 		  lua_call (L, 2, 0);
 	}
 	//initialize parent
 	stage->parent = NULL;
-	lua_pushliteral (L, LSTAGE_INSTANCE_KEY);
+	lua_pushliteral (L, CLP_INSTANCE_KEY);
 	lua_gettable (L, LUA_REGISTRYINDEX);
 	if (lua_type (L, -1) == LUA_TLIGHTUSERDATA)
 	  {
@@ -470,31 +470,31 @@ lstage_newstage (lua_State * L)
 }
 
 static int
-lstage_destroystage (lua_State * L)
+clp_destroytask (lua_State * L)
 {
-	stage_t *s_ptr = luaL_checkudata (L, 1, LSTAGE_STAGE_METATABLE);
+	task_t *s_ptr = luaL_checkudata (L, 1, CLP_TASK_METATABLE);
 	if (!s_ptr)
 		return 0;
 	if (!(*s_ptr))
 		return 0;
-	stage_t s = *s_ptr;
+	task_t s = *s_ptr;
 	if (s->env != NULL)
 		free (s->env);
-/*	while (lstage_lfqueue_try_pop (s->instances, &i))
-		lstage_destroyinstance (i);
-	lstage_lfqueue_free (s->instances);*/
+/*	while (ltask_lfqueue_try_pop (s->instances, &i))
+		clp_destroyinstance (i);
+	ltask_lfqueue_free (s->instances);*/
 	s->input=NULL;
 	*s_ptr = 0;
 	return 0;
 }
 
 static int
-lstage_getstage (lua_State * L)
+clp_gettask (lua_State * L)
 {
-	stage_t s = lua_touserdata (L, 1);
+	task_t s = lua_touserdata (L, 1);
 	if (s)
 	  {
-		  lstage_buildstage (L, s);
+		  clp_buildtask (L, s);
 		  return 1;
 	  }
 	lua_pushnil (L);
@@ -503,20 +503,20 @@ lstage_getstage (lua_State * L)
 }
 
 static const struct luaL_Reg LuaExportFunctions[] = {
-	{"new", lstage_newstage},
-	{"get", lstage_getstage},
-	{"destroy", lstage_destroystage},
-	{"is_stage", stage_isstage},
+	{"new", clp_newtask},
+	{"get", clp_gettask},
+	{"destroy", clp_destroytask},
+	{"is_stage", task_isstage},
 	{NULL, NULL}
 };
 
-LSTAGE_EXPORTAPI int
-luaopen_lstage_stage (lua_State * L)
+CLP_EXPORTAPI int
+luaopen_clp_task (lua_State * L)
 {
 	lua_newtable (L);
 	lua_newtable (L);
 	luaL_loadstring (L,
-			 "return function() return require'lstage.stage' end");
+			 "return function() return require'clp.task' end");
 	lua_setfield (L, -2, "__persist");
 	lua_setmetatable (L, -2);
 #if LUA_VERSION_NUM < 502
@@ -545,10 +545,10 @@ static const struct luaL_Reg InstanceLibs[] = {
 		{NULL,NULL}
 };
 
-void lstage_initinstance(instance_t i) {
+void clp_initinstance(instance_t i) {
   	_DEBUG("Initiating instance %p\n",i);
 	lua_State *L=i->L;
-	lua_pushliteral(L,LSTAGE_INSTANCE_KEY);
+	lua_pushliteral(L,CLP_INSTANCE_KEY);
 	lua_pushlightuserdata(L,i);
 	lua_settable(L, LUA_REGISTRYINDEX);	
 	lua_pushcfunction(L,luaopen_base);
@@ -559,7 +559,7 @@ void lstage_initinstance(instance_t i) {
 	LUA_REGISTER(L,InstanceLibs);
    lua_pop(L,2);
 //	luaL_openlibs(L);
-	lua_pushliteral(L,STAGE_HANDLER_KEY);
+	lua_pushliteral(L,TASK_HANDLER_KEY);
 	luaL_loadstring(L,"local a={...} "
 							"local h=a[1].f "
   	                  "local s=a[4] "
@@ -570,32 +570,32 @@ void lstage_initinstance(instance_t i) {
 	lua_pushlstring(L,i->stage->env,i->stage->env_len);
 	lua_call(L,1,1);
 	lua_pushvalue(L,-1);
-	lua_setfield(L, LUA_REGISTRYINDEX,LSTAGE_ENV_KEY);
-	lstage_pushchannel(L,i->stage->input);
-	lstage_pushchannel(L,i->stage->output);
-	lstage_buildstage(L,i->stage);
+	lua_setfield(L, LUA_REGISTRYINDEX,CLP_ENV_KEY);
+	clp_pushchannel(L,i->stage->input);
+	clp_pushchannel(L,i->stage->output);
+	clp_buildtask(L,i->stage);
 	lua_call(L,4,1);
 	lua_settable(L, LUA_REGISTRYINDEX);
-	lua_getfield(L, LUA_REGISTRYINDEX,LSTAGE_ENV_KEY);
+	lua_getfield(L, LUA_REGISTRYINDEX,CLP_ENV_KEY);
 	lua_getfield(L,-1,"e");
-	lua_setfield(L,LUA_REGISTRYINDEX,LSTAGE_ERRORFUNCTION_KEY);
+	lua_setfield(L,LUA_REGISTRYINDEX,CLP_ERRORFUNCTION_KEY);
 	lua_pop(L,1);
 	i->flags=I_READY;
 }
 
-instance_t lstage_newinstance(stage_t s) {
+instance_t clp_newinstance(task_t s) {
    lua_State * L = luaL_newstate();
 	instance_t i=malloc(sizeof(struct instance_s));
 	i->L=L;
 	i->stage=s;
 	i->flags=I_CREATED;
 	i->ev=NULL;
-	lstage_pushinstance(i);
+	clp_pushinstance(i);
 	return i;
 }
 
-void lstage_destroyinstance(instance_t i) {
+void clp_destroyinstance(instance_t i) {
    lua_close(i->L);
-   if(i->ev) lstage_destroyevent(i->ev);
+   if(i->ev) clp_destroyevent(i->ev);
    free(i);
 }

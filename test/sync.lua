@@ -1,11 +1,11 @@
-local lstage=require'lstage'
+local clp=require'clp'
 
-local init=lstage.now()
-lstage.pool:add(lstage:cpus())
-print('pool',lstage.pool:size())
+local init=clp.now()
+clp.pool:add(clp:cpus())
+print('pool',clp.pool:size())
 
 local function call(s,...)
-  local input,output=lstage.channel(1),lstage.channel(1)
+  local input,output=clp.channel(1),clp.channel(1)
   
   input:push(...)
   s:push(input,output)
@@ -13,7 +13,7 @@ local function call(s,...)
 end
 
 local function sync(f,...)
-  return lstage.stage(function(i,o)
+  return clp.task(function(i,o)
      o:push(f(i:get()))
   end,...)
 end
@@ -32,34 +32,34 @@ local authenticate=sync(function(user,passwd)
     i=(i or 0)+1
     print('passwd',user,passwd,i)
     if user.hash==computeHash(passwd) then
-      return 'success',user.user,lstage.now()-init
+      return 'success',user.user,clp.now()-init
     end
-    return nil,'password not match',lstage.now()-init
-end,lstage:cpus())
+    return nil,'password not match',clp.now()-init
+end,clp:cpus())
 
 
-print(lstage.now()-init,call(authenticate,{user='Me',hash='pass'},'pass2'))
-print(lstage.now()-init,call(authenticate,{user='Me',hash='pass123'},'pass'))
-print(lstage.now()-init,call(authenticate,{user='Me',hash='pass123'},'pass123'))
-print(lstage.now()-init,call(authenticate,{user='Me',hash='pass123'},'pass321'))
+print(clp.now()-init,call(authenticate,{user='Me',hash='pass'},'pass2'))
+print(clp.now()-init,call(authenticate,{user='Me',hash='pass123'},'pass'))
+print(clp.now()-init,call(authenticate,{user='Me',hash='pass123'},'pass123'))
+print(clp.now()-init,call(authenticate,{user='Me',hash='pass123'},'pass321'))
 
 local function chain(s1,s2,...) 
-  return lstage.stage(
+  return clp.task(
     function(...)
       s2:push(call(s1,...))
     end,...)
 end
 
-local print_s=lstage.stage(function(...)
-    print(lstage.now()-init,...)
+local print_s=clp.task(function(...)
+    print(clp.now()-init,...)
 end)
 
-local a=chain(authenticate,print_s,lstage:cpus())
+local a=chain(authenticate,print_s,clp:cpus())
 
-print(lstage.now()-init,'pushing')
+print(clp.now()-init,'pushing')
 a:push({user='Me',hash='pass'},'pass2')
 a:push({user='Me',hash='pass123'},'pass')
 a:push({user='Me',hash='pass123'},'pass321')
 a:push({user='Me',hash='pass123'},'pass123')
-print(lstage.now()-init,'asynchronous call')
-while true do lstage.event.sleep(1000) end
+print(clp.now()-init,'asynchronous call')
+while true do clp.event.sleep(1000) end

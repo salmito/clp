@@ -3,7 +3,7 @@ LUA_VER=5.1
 LUA_LIBDIR=/usr/local/lib/lua/$(LUA_VER)
 
 SRC_DIR=src/
-MODULE=lstage
+MODULE=clp
 _SO=.so
 
 BIN=$(MODULE)$(_SO)

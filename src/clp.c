@@ -2,9 +2,9 @@
 #include <errno.h>
 #include <string.h>  
 
-#include "lstage.h"
+#include "clp.h"
 #include "marshal.h"
-#include "stage.h"
+#include "task.h"
 #include "pool.h"
 #include "threading.h"
 
@@ -63,24 +63,24 @@ void tableDump(lua_State *L, int idx, const char* text)
 }
 #endif
 
-static int lstage_version(lua_State * L) {
-	lua_pushliteral(L,LSTAGE_VERSION);
+static int clp_version(lua_State * L) {
+	lua_pushliteral(L,CLP_VERSION);
 	return 1;
 }
 
-static int lstage_gettime(lua_State * L) {
+static int clp_gettime(lua_State * L) {
    lua_pushnumber(L,now_secs());
    return 1;
 }
 
 
-static int lstage_getself(lua_State *L) {
-	lua_pushliteral(L,LSTAGE_INSTANCE_KEY);
+static int clp_getself(lua_State *L) {
+	lua_pushliteral(L,CLP_INSTANCE_KEY);
 	lua_gettable(L, LUA_REGISTRYINDEX);	
 	if(!lua_isnil(L,-1)) {
 		instance_t i=lua_touserdata(L,-1);
 		lua_pop(L,1);
-		lstage_buildstage(L,i->stage);
+		clp_buildtask(L,i->stage);
 	}
 	return 1;
 }
@@ -103,14 +103,14 @@ static int get_cpus() {
    return 0;
 }
 
-static int lstage_setmetatable(lua_State *L) {
+static int clp_setmetatable(lua_State *L) {
    lua_pushvalue(L,2);
    lua_setmetatable(L,1);
    lua_pushvalue(L,1);
    return 1;
 }
 
-int lstage_getmetatable(lua_State *L) {
+static int clp_getmetatable(lua_State *L) {
    if(lua_type(L,1)==LUA_TSTRING) {
       const char *tname=lua_tostring(L,1);
       luaL_getmetatable(L,tname);
@@ -121,12 +121,12 @@ int lstage_getmetatable(lua_State *L) {
 }
 
 
-static int lstage_cpus(lua_State *L) {
+static int clp_cpus(lua_State *L) {
    lua_pushnumber(L,get_cpus());
    return 1;
 }
 
-static void lstage_require(lua_State *L, const char *lib, lua_CFunction func) {
+static void clp_require(lua_State *L, const char *lib, lua_CFunction func) {
 #if LUA_VERSION_NUM < 502 
 	lua_getglobal(L,"require");
 	lua_pushstring(L, lib);
@@ -136,59 +136,59 @@ static void lstage_require(lua_State *L, const char *lib, lua_CFunction func) {
 #endif
 }
 
-LSTAGE_EXPORTAPI int luaopen_lstage_event(lua_State *L);
-LSTAGE_EXPORTAPI int luaopen_lstage_scheduler(lua_State *L);
-LSTAGE_EXPORTAPI int luaopen_lstage_stage(lua_State *L);
-LSTAGE_EXPORTAPI int luaopen_lstage_pool(lua_State *L);
-LSTAGE_EXPORTAPI int luaopen_lstage_channel(lua_State *L);
+CLP_EXPORTAPI int luaopen_clp_event(lua_State *L);
+CLP_EXPORTAPI int luaopen_clp_scheduler(lua_State *L);
+CLP_EXPORTAPI int luaopen_clp_task(lua_State *L);
+CLP_EXPORTAPI int luaopen_clp_pool(lua_State *L);
+CLP_EXPORTAPI int luaopen_clp_channel(lua_State *L);
 
 static const struct luaL_Reg LuaExportFunctions[] = {
-	{"_VERSION",lstage_version},
-	{"now",lstage_gettime},
-	{"cpus",lstage_cpus},
-	{"getmetatable",lstage_getmetatable},
-	{"setmetatable",lstage_setmetatable},
-	{"self",lstage_getself},
+	{"_VERSION",clp_version},
+	{"now",clp_gettime},
+	{"cpus",clp_cpus},
+	{"getmetatable",clp_getmetatable},
+	{"setmetatable",clp_setmetatable},
+	{"self",clp_getself},
 	{NULL,NULL}
 	};
 
-pool_t lstage_defaultpool=NULL;
+pool_t clp_defaultpool=NULL;
 
-LSTAGE_EXPORTAPI int luaopen_lstage(lua_State *L) {
+CLP_EXPORTAPI int luaopen_clp(lua_State *L) {
 	lua_newtable(L);
-	lstage_require(L,"lstage.pool",luaopen_lstage_pool);	
+	clp_require(L,"clp.pool",luaopen_clp_pool);	
 	lua_getfield(L,-1,"new");
-	if(!lstage_defaultpool) {
+	if(!clp_defaultpool) {
 		lua_pushvalue(L,-1);
 		lua_call(L,0,1);
-		lstage_defaultpool=lstage_topool(L,-1);
+		clp_defaultpool=clp_topool(L,-1);
 		lua_getfield(L,-1,"add");
 		lua_pushvalue(L,-2);
 		lua_call(L,1,0);
 	} else {
-		lstage_buildpool(L,lstage_defaultpool);
+		clp_buildpool(L,clp_defaultpool);
 	}
 	lua_setfield(L,-4,"pool");
 	//lua_setfield(L,-3,"pool");
 	lua_pop(L,2);
-	lstage_require(L,"lstage.event",luaopen_lstage_event);
+	clp_require(L,"clp.event",luaopen_clp_event);
 	lua_getfield(L,-1,"encode");
 	lua_setfield(L,-3,"encode");
 	lua_getfield(L,-1,"decode");
 	lua_setfield(L,-3,"decode");
 	lua_setfield(L,-2,"event");
-	lstage_require(L,"lstage.scheduler",luaopen_lstage_scheduler);
+	clp_require(L,"clp.scheduler",luaopen_clp_scheduler);
 	lua_setfield(L,-2,"scheduler");
-	lstage_require(L,"lstage.channel",luaopen_lstage_channel);
+	clp_require(L,"clp.channel",luaopen_clp_channel);
 	lua_getfield(L,-1,"new");
 	lua_setfield(L,-3,"channel");
 	lua_pop(L,1);
-	lstage_require(L,"lstage.stage",luaopen_lstage_stage);
+	clp_require(L,"clp.task",luaopen_clp_task);
 	lua_getfield(L,-1,"new");
-	lua_setfield(L,-3,"stage");
+	lua_setfield(L,-3,"task");
 	lua_pop(L,1);
 	lua_newtable(L);
-	luaL_loadstring(L,"return function() return require'lstage' end");
+	luaL_loadstring(L,"return function() return require'clp' end");
 	lua_setfield (L, -2,"__persist");
 	lua_setmetatable(L,-2);
 #if LUA_VERSION_NUM < 502

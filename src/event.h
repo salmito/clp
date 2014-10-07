@@ -10,8 +10,8 @@ struct event_s {
    size_t len;
 };
 
-event_t lstage_newevent(const char * ev, size_t len);
-int lstage_restoreevent(lua_State *L,event_t ev);
-void lstage_destroyevent(event_t e);
+event_t clp_newevent(const char * ev, size_t len);
+int clp_restoreevent(lua_State *L,event_t ev);
+void clp_destroyevent(event_t e);
 
 #endif

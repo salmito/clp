@@ -1,14 +1,14 @@
-local lstage=require'lstage'
+local clp=require'clp'
 
 local it=tonumber((...)) or 10000
 
 local bench={
 	start=function(self)
-		self.t=lstage.now()
+		self.t=clp.now()
 		self.c=os.clock()
 	end,
 	stop=function(self)
-		return lstage.now()-self.t,os.clock()-self.c
+		return clp.now()-self.t,os.clock()-self.c
 	end,
 	clock=function(self,str)
 		local t,c=self:stop()
@@ -36,8 +36,8 @@ end
 
 bench:clock('serial lua')
 
-local s1=lstage.stage(f)
-local s2=lstage.stage(f2)
+local s1=clp.task(f)
+local s2=clp.task(f2)
 
 s2:setoutput(s1:input())
 
@@ -50,10 +50,10 @@ for i=1,it do
 end
 print(s1:output():size())
 
-bench:clock('serial stage')
+bench:clock('serial task')
 
-lstage.pool:add(lstage.cpus()-1)
-s1:add(lstage.cpus()-1)
+clp.pool:add(clp.cpus()-1)
+s1:add(clp.cpus()-1)
 for i=1,it do
 	s2(i)
 end
@@ -61,4 +61,4 @@ end
 for i=1,it do
 	s1:output():get()
 end
-bench:clock('parallel stage')
+bench:clock('parallel task')

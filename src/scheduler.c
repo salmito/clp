@@ -1,4 +1,4 @@
-#include "lstage.h"
+#include "clp.h"
 #include "scheduler.h"
 #include "threading.h"
 #include "event.h"
@@ -7,19 +7,19 @@
 #include <time.h>
 
 static int thread_tostring (lua_State *L) {
-  thread_t * t = luaL_checkudata (L, 1, LSTAGE_THREAD_METATABLE);
+  thread_t * t = luaL_checkudata (L, 1, CLP_THREAD_METATABLE);
   lua_pushfstring (L, "Thread (%p)", *t);
   return 1;
 }
 
-thread_t lstage_tothread(lua_State *L, int i) {
-	thread_t * t = luaL_checkudata (L, i, LSTAGE_THREAD_METATABLE);
+thread_t clp_tothread(lua_State *L, int i) {
+	thread_t * t = luaL_checkudata (L, i, CLP_THREAD_METATABLE);
 	luaL_argcheck (L, *t != NULL, i, "not a Thread");
 	return *t;
 }
 
 static int thread_join (lua_State *L) {
-	thread_t t=lstage_tothread(L,1);
+	thread_t t=clp_tothread(L,1);
 	int timeout=lua_tointeger(L,2);
 	if(timeout>0) {
 		struct timespec to;
@@ -37,26 +37,26 @@ static int thread_join (lua_State *L) {
 }
 
 static int thread_rawkill (lua_State *L) {
-   thread_t t=lstage_tothread(L,1);
+   thread_t t=clp_tothread(L,1);
    THREAD_KILL(t->th);
    return 0;
 }
 
 static int thread_state (lua_State *L) {
-   thread_t t=lstage_tothread(L,1);
+   thread_t t=clp_tothread(L,1);
    lua_pushnumber(L,t->state);
    return 1;
 }
 
 static int thread_ptr (lua_State *L) {
-	thread_t t=lstage_tothread(L,1);
+	thread_t t=clp_tothread(L,1);
 	lua_pushlightuserdata(L,t);
 	return 1;
 }
 
 static int thread_eq(lua_State * L) {
-	thread_t t1=lstage_tothread(L,1);
-	thread_t t2=lstage_tothread(L,2);
+	thread_t t1=clp_tothread(L,1);
+	thread_t t2=clp_tothread(L,2);
 	lua_pushboolean(L,t1==t2);
 	return 1;
 }
@@ -72,14 +72,14 @@ static const struct luaL_Reg StageMetaFunctions[] = {
 };
 
 static void get_metatable(lua_State * L) {
-	luaL_getmetatable(L,LSTAGE_THREAD_METATABLE);
+	luaL_getmetatable(L,CLP_THREAD_METATABLE);
    if(lua_isnil(L,-1)) {
    	lua_pop(L,1);
-  		luaL_newmetatable(L,LSTAGE_THREAD_METATABLE);
+  		luaL_newmetatable(L,CLP_THREAD_METATABLE);
   		lua_pushvalue(L,-1);
   		lua_setfield(L,-2,"__index");
 		LUA_REGISTER(L,StageMetaFunctions);
-		luaL_loadstring(L,"local th=(...):__id() return function() return require'lstage.scheduler'.build(th) end");
+		luaL_loadstring(L,"local th=(...):__id() return function() return require'clp.scheduler'.build(th) end");
 		lua_setfield (L, -2,"__wrap");
   	}
 }
@@ -89,11 +89,11 @@ static void thread_resume_instance(instance_t i) {
 
 	lua_State * L=i->L;
 	if(i->flags==I_CREATED) {
-		lstage_initinstance(i);
+		clp_initinstance(i);
 	}
 	i->args=0;
-	lua_getfield(L,LUA_REGISTRYINDEX,LSTAGE_ERRORFUNCTION_KEY);
-	lua_getfield(L,LUA_REGISTRYINDEX,STAGE_HANDLER_KEY);
+	lua_getfield(L,LUA_REGISTRYINDEX,CLP_ERRORFUNCTION_KEY);
+	lua_getfield(L,LUA_REGISTRYINDEX,TASK_HANDLER_KEY);
 
 	switch(i->flags) {
 		case I_CLOSED:
@@ -106,16 +106,16 @@ static void thread_resume_instance(instance_t i) {
 			if(i->ev) {
 		      lua_pushcfunction(L,mar_decode);
 		      lua_pushlstring(L,i->ev->data,i->ev->len);
-		      lstage_destroyevent(i->ev);
+		      clp_destroyevent(i->ev);
   		      i->ev=NULL;
 				if(lua_pcall(L,1,1,0)) {
-					lua_getfield(L,LUA_REGISTRYINDEX,LSTAGE_ERRORFUNCTION_KEY);
+					lua_getfield(L,LUA_REGISTRYINDEX,CLP_ERRORFUNCTION_KEY);
 					lua_insert(L,1);
 					if(lua_pcall(i->L,1,0,0)) {
 				   	const char * err=lua_tostring(L,-1);
 				   	fprintf(stderr,"Error unpacking event: %s\n",err);
 				   }
-				   lstage_destroyinstance(i);
+				   clp_destroyinstance(i);
 	  		      return;
 				}
 				int n=
@@ -150,13 +150,13 @@ static void thread_resume_instance(instance_t i) {
 	if(lua_pcall(L,i->args,0, -(i->args+2))) {
      	const char * err=lua_tostring(L,-1);
      	fprintf(stderr,"Error resuming instance: %d: %s\n",-(i->args+2),err);
-      lstage_destroyinstance(i);
+      clp_destroyinstance(i);
       return;
    }
   	lua_pop(L,1);
 //  	printf("instance %s\n",instance_state[i->flags]);
   	if(i->flags==I_READY) { //instance yield
-  		lstage_pushinstance(i);
+  		clp_pushinstance(i);
   	}
 }
 
@@ -168,7 +168,7 @@ static THREAD_RETURN_T THREAD_CALLCONV thread_mainloop(void *t_val) {
    	_DEBUG("Thread %p wating for ready instaces in %p (%p)\n",self,self->pool,self->pool->ready);
    	self->state=THREAD_IDLE;
 
-      lstage_lfqueue_pop(self->pool->ready,(void**)&i);
+      clp_lfqueue_pop(self->pool->ready,(void**)&i);
       if(i==NULL) break;
      	_DEBUG("Thread %p got a ready instace %p\n",self,i);
      	self->state=THREAD_RUNNING;
@@ -180,7 +180,7 @@ static THREAD_RETURN_T THREAD_CALLCONV thread_mainloop(void *t_val) {
    return t_val;
 }
 
-int lstage_joinpool(lua_State *L,pool_t pool) {
+int clp_joinpool(lua_State *L,pool_t pool) {
 	thread_t * thread=lua_newuserdata(L,sizeof(thread_t));
 	thread_t t=malloc(sizeof(struct thread_s));
 	*t->th=pthread_self();
@@ -191,7 +191,7 @@ int lstage_joinpool(lua_State *L,pool_t pool) {
 	return 1;
 }
 
-int lstage_newthread(lua_State *L,pool_t pool) {
+int clp_newthread(lua_State *L,pool_t pool) {
 	_DEBUG("Creating new thread for pool %p\n",pool);
 	thread_t * thread=lua_newuserdata(L,sizeof(thread_t));
 	thread_t t=malloc(sizeof(struct thread_s));
@@ -214,8 +214,8 @@ static int thread_from_ptr (lua_State *L) {
    return 1;
 }
 
-void lstage_pushinstance(instance_t i) {
-	return lstage_lfqueue_push(i->stage->pool->ready, &i);
+void clp_pushinstance(instance_t i) {
+	return clp_lfqueue_push(i->stage->pool->ready, &i);
 }
 
 static const struct luaL_Reg LuaExportFunctions[] = {
@@ -225,14 +225,14 @@ static const struct luaL_Reg LuaExportFunctions[] = {
 	{NULL,NULL}
 	};
 
-LSTAGE_EXPORTAPI	int luaopen_lstage_scheduler(lua_State *L) {
+CLP_EXPORTAPI	int luaopen_clp_scheduler(lua_State *L) {
 
-//	if(!ready_queue) ready_queue=lstage_lfqueue_new();
+//	if(!ready_queue) ready_queue=clp_lfqueue_new();
 	get_metatable(L);
 	lua_pop(L,1);
 	lua_newtable(L);
 	lua_newtable(L);
-	luaL_loadstring(L,"return function() return require'lstage.scheduler' end");
+	luaL_loadstring(L,"return function() return require'clp.scheduler' end");
 	lua_setfield (L, -2,"__persist");
 	lua_setmetatable(L,-2);
 #if LUA_VERSION_NUM < 502

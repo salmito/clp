@@ -14,7 +14,7 @@
 
 #if LUA_VERSION_NUM > 501
    #define lua_objlen lua_rawlen
-   #define LSTAGE_ENV_MARKER "__lstage-env-5.2-mark"
+   #define CLP_ENV_MARKER "__clp-env-5.2-mark"
 #endif
 
 typedef struct mar_Buffer {
@@ -215,7 +215,7 @@ static void mar_encode_value(lua_State *L, mar_Buffer *buf, int val, size_t *idx
 					 	if(!strncmp(str,"_ENV",4)) {
 		  					//printf("Stripping _ENV\n");
 					 		lua_pop(L,1);
-					 		lua_pushliteral(L,LSTAGE_ENV_MARKER);
+					 		lua_pushliteral(L,CLP_ENV_MARKER);
 					 	}
 					#else
 						lua_getupvalue(L, -2, i);
@@ -421,7 +421,7 @@ static void mar_decode_value
                 if(lua_type(L,-1)==LUA_TSTRING) {
                 	size_t len=0;
                 	const char * s=lua_tolstring(L,-1,&len);
-                	if(!strncmp(s,LSTAGE_ENV_MARKER,sizeof(LSTAGE_ENV_MARKER))) {
+                	if(!strncmp(s,CLP_ENV_MARKER,sizeof(CLP_ENV_MARKER))) {
                 		lua_rawgeti(L, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS);
                 		lua_remove(L,-2);
                 	}
@@ -571,19 +571,3 @@ int mar_clone(lua_State* L)
     mar_decode(L);
     return 1;
 }
-
-/*static const luaL_reg R[] =
-{
-    {"encode",      mar_encode},
-    {"decode",      mar_decode},
-    {"clone",       mar_clone},
-    {NULL,	    NULL}
-};
-
-int luaopen_lstage_marshal(lua_State *L)
-{
-    lua_newtable(L);
-    luaL_register(L, NULL, R);
-    return 1;
-}*/
-

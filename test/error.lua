@@ -1,7 +1,7 @@
-local lstage=require'lstage'
+local clp=require'clp'
 local p=print
 local i={10}
-local s1=lstage.stage(function(str) 
+local s1=clp.task(function(str) 
   i[1]=20
   print(str,i[1])
   
@@ -18,7 +18,7 @@ local function g()
 	f()
 end
 
-lstage.stage(function() g() end):push()
+clp.task(function() g() end):push()
 	
 
-lstage.event.sleep(1)
+clp.event.sleep(1)

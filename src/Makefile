@@ -15,8 +15,8 @@ LUA=lua
 CC=gcc
 G_PLUS_PLUS=g++
 
-OBJ=  lstage.o \
-		stage.o \
+OBJ=  clp.o \
+		task.o \
 		lf_queue.o \
 		marshal.o \
 		event.o \
@@ -29,7 +29,7 @@ HEADERS=*.h
 
 _SO=.so
 
-MODULE=lstage$(_SO)
+MODULE=clp$(_SO)
 
 all: $(MODULE)
 

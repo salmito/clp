@@ -1,5 +1,5 @@
 #include "channel.h"
-#include "stage.h"
+#include "task.h"
 #include "event.h"
 #include "scheduler.h"
 #include "marshal.h"
@@ -8,8 +8,10 @@
 #define LOCK(q) while (__sync_lock_test_and_set(&(q)->lock,1)) {}
 #define UNLOCK(q) __sync_lock_release(&(q)->lock);
 
-channel_t lstage_tochannel(lua_State *L, int i) {
-	channel_t * t = luaL_checkudata (L, i, LSTAGE_CHANNEL_METATABLE);
+static event_t waiting_event;
+
+channel_t clp_tochannel(lua_State *L, int i) {
+	channel_t * t = luaL_checkudata (L, i, CLP_CHANNEL_METATABLE);
 	luaL_argcheck (L, *t != NULL, i, "not a Channel");
 	return *t;
 }
@@ -17,7 +19,7 @@ channel_t lstage_tochannel(lua_State *L, int i) {
 static void
 channel_putcache(lua_State * L, channel_t t)
 {
-	lua_pushliteral(L,LSTAGE_CHANNEL_CACHE);
+	lua_pushliteral(L,CLP_CHANNEL_CACHE);
 	lua_gettable(L,LUA_REGISTRYINDEX);
 	if(!lua_isuserdata(L,-1)) {
 		lua_pop(L,1);
@@ -26,7 +28,7 @@ channel_putcache(lua_State * L, channel_t t)
 		lua_pushliteral(L,"v");
 		lua_setfield(L,-2,"__mode");
 		lua_setmetatable(L,-2);
-		lua_pushliteral(L,LSTAGE_CHANNEL_CACHE);
+		lua_pushliteral(L,CLP_CHANNEL_CACHE);
 		lua_pushvalue(L,-2);
 		lua_settable(L,LUA_REGISTRYINDEX);
 	}
@@ -39,7 +41,7 @@ channel_putcache(lua_State * L, channel_t t)
 static void
 channel_getcached(lua_State * L, channel_t t)
 {
-	lua_pushliteral(L,LSTAGE_CHANNEL_CACHE);
+	lua_pushliteral(L,CLP_CHANNEL_CACHE);
 	lua_gettable(L,LUA_REGISTRYINDEX);
 	if(!lua_istable(L,-1)) {
 		lua_pop(L,1);
@@ -48,7 +50,7 @@ channel_getcached(lua_State * L, channel_t t)
 		lua_pushliteral(L,"v");
 		lua_setfield(L,-2,"__mode");
 		lua_setmetatable(L,-2);
-		lua_pushliteral(L,LSTAGE_CHANNEL_CACHE);
+		lua_pushliteral(L,CLP_CHANNEL_CACHE);
 		lua_pushvalue(L,-2);
 		lua_settable(L,LUA_REGISTRYINDEX);
 	}
@@ -59,45 +61,45 @@ channel_getcached(lua_State * L, channel_t t)
 
 
 static int channel_eq(lua_State * L) {
-	channel_t s1=lstage_tochannel(L,1);
-	channel_t s2=lstage_tochannel(L,2);
+	channel_t s1=clp_tochannel(L,1);
+	channel_t s2=clp_tochannel(L,2);
 	lua_pushboolean(L,s1==s2);
 	return 1;
 }
 
 static int channel_getsize(lua_State * L) {
-	channel_t s=lstage_tochannel(L,1);
-	lua_pushnumber(L,lstage_lfqueue_size(s->event_queue));
-	lua_pushnumber(L,lstage_lfqueue_getcapacity(s->event_queue));
-	lua_pushnumber(L,lstage_lfqueue_size(s->read_queue));
-	lua_pushnumber(L,lstage_lfqueue_getcapacity(s->read_queue));
+	channel_t s=clp_tochannel(L,1);
+	lua_pushnumber(L,clp_lfqueue_size(s->event_queue));
+	lua_pushnumber(L,clp_lfqueue_getcapacity(s->event_queue));
+	lua_pushnumber(L,clp_lfqueue_size(s->read_queue));
+	lua_pushnumber(L,clp_lfqueue_getcapacity(s->read_queue));
 	return 4;
 }
 
 static int channel_setsize(lua_State * L) {
-	channel_t s=lstage_tochannel(L,1);
+	channel_t s=clp_tochannel(L,1);
 	luaL_checktype (L, 2, LUA_TNUMBER);
 	int capacity=lua_tointeger(L,2);
 	int waitsize=luaL_optint(L,3,-1);
-	lstage_lfqueue_setcapacity(s->event_queue,capacity);
-	lstage_lfqueue_setcapacity(s->read_queue,waitsize);
+	clp_lfqueue_setcapacity(s->event_queue,capacity);
+	clp_lfqueue_setcapacity(s->read_queue,waitsize);
 	lua_pushvalue(L,1);
 	return 1;
 }
 
 static int channel_close(lua_State * L) {
-	channel_t c=lstage_tochannel(L,1);
+	channel_t c=clp_tochannel(L,1);
    instance_t ins=NULL;
    LOCK(c);
-   while(lstage_lfqueue_try_pop(c->read_queue,&ins)) {
+   while(clp_lfqueue_try_pop(c->read_queue,&ins)) {
   		ins->flags=I_CLOSED;
  		ins->args=0;
-		lstage_pushinstance(ins);
+		clp_pushinstance(ins);
    }
-   while(lstage_lfqueue_try_pop(c->write_queue,&ins)) {
+   while(clp_lfqueue_try_pop(c->write_queue,&ins)) {
   		ins->flags=I_CLOSED;
  		ins->args=0;
-		lstage_pushinstance(ins);
+		clp_pushinstance(ins);
    }
    c->closed=1;
   	UNLOCK(c);
@@ -106,19 +108,19 @@ static int channel_close(lua_State * L) {
 }
 
 static int channel_tostring (lua_State *L) {
-  channel_t * s = luaL_checkudata (L, 1, LSTAGE_CHANNEL_METATABLE);
+  channel_t * s = luaL_checkudata (L, 1, CLP_CHANNEL_METATABLE);
   lua_pushfstring (L, "Channel (%p)", *s);
   return 1;
 }
 
 static int channel_ptr(lua_State * L) {
-	channel_t * s = luaL_checkudata (L, 1, LSTAGE_CHANNEL_METATABLE);
+	channel_t * s = luaL_checkudata (L, 1, CLP_CHANNEL_METATABLE);
 	lua_pushlightuserdata(L,*s);
 	return 1;
 }
 
-int lstage_pushevent(lua_State *L) {
-	channel_t c = lstage_tochannel(L,1);
+int clp_pushevent(lua_State *L) {
+	channel_t c = clp_tochannel(L,1);
    int top=lua_gettop(L);
   	_DEBUG("CHANNEL PUSH EVENT: %p %d\n",c,top);
    lua_pushcfunction(L,mar_encode);
@@ -133,8 +135,8 @@ int lstage_pushevent(lua_State *L) {
    const char * str=lua_tolstring(L,-1,&len);
    lua_pop(L,1);
    instance_t ins=NULL;
-   event_t ev=lstage_newevent(str,len);
-  	lua_pushliteral(L,LSTAGE_INSTANCE_KEY);
+   event_t ev=clp_newevent(str,len);
+  	lua_pushliteral(L,CLP_INSTANCE_KEY);
 	lua_gettable(L, LUA_REGISTRYINDEX);
    LOCK(c);
    if(c->closed) {
@@ -154,49 +156,59 @@ int lstage_pushevent(lua_State *L) {
    	lua_pushboolean(L,1);
       return 1;
    }
-   if(lstage_lfqueue_try_pop(c->read_queue,&ins)) {
+   if(clp_lfqueue_try_pop(c->read_queue,&ins)) {
   		UNLOCK(c);
   	   _DEBUG("got waiter\n");
    	lua_settop(ins->L,0);
    	ins->ev=ev;
 		ins->flags=I_READY;
-		lstage_pushinstance(ins);
+		clp_pushinstance(ins);
   	   lua_pop(L,1);
 		lua_pushboolean(L,1);
 		return 1;
-   } else if(lstage_lfqueue_try_push(c->event_queue,&ev)) {
+   } else if(clp_lfqueue_try_push(c->event_queue,&ev)) {
 	   UNLOCK(c);
   	   _DEBUG("used event queue\n");
   	   lua_pop(L,1);
       lua_pushboolean(L,1);
       return 1;
    } else if(c->sync) {
-  	   _DEBUG("channel closed\n");
 	   ins=lua_touserdata(L,-1);
+  	   printf("channel is sync %p\n",ins);
 		lua_pop(L,1);
+  	   if(ins==NULL) {
+	  	   MUTEX_LOCK(&c->mutex);
+	  		UNLOCK(c);
+			waiting_event=ev;
+			c->waiting++;
+			SIGNAL_WAIT(&c->cond,&c->mutex,-1.0);
+			MUTEX_UNLOCK(&c->mutex);
+	   	lua_pushboolean(L,1);
+			return 1;
+  	   }
 		ins->ev=ev;
 		ins->flags=I_WAITING_CHANNEL;
-		lstage_lfqueue_try_push(c->write_queue,&ins);
+		clp_lfqueue_try_push(c->write_queue,&ins);
 		UNLOCK(c);
 		return lua_yield(L,0);
 	}
 	UNLOCK(c);
    _DEBUG("async queue full\n");
-   lstage_destroyevent(ev);
+   clp_destroyevent(ev);
    lua_pushnil(L);
    lua_pushliteral(L,"Event queue is full");
    return 2;
 }
 
 static int channel_tryget(lua_State *L) {
-   channel_t c = lstage_tochannel(L,1);
+   channel_t c = clp_tochannel(L,1);
 	event_t ev=NULL;
    LOCK(c);
-   if(lstage_lfqueue_try_pop(c->event_queue,(void **)&ev)) {
+   if(clp_lfqueue_try_pop(c->event_queue,(void **)&ev)) {
 	   UNLOCK(c);
       lua_pushboolean(L,1);
-		int n=lstage_restoreevent(L,ev);
-		lstage_destroyevent(ev);
+		int n=clp_restoreevent(L,ev);
+		clp_destroyevent(ev);
 		return n+1;
 	}
 	UNLOCK(c);
@@ -205,7 +217,7 @@ static int channel_tryget(lua_State *L) {
 }
 
 static int channel_trypush(lua_State *L) {
-	channel_t c = lstage_tochannel(L,1);
+	channel_t c = clp_tochannel(L,1);
    int top=lua_gettop(L);
   	_DEBUG("CHANNEL PUSH EVENT: %p %d\n",c,top);
    lua_pushcfunction(L,mar_encode);
@@ -219,7 +231,7 @@ static int channel_trypush(lua_State *L) {
    size_t len;
    const char * str=lua_tolstring(L,-1,&len);
    lua_pop(L,1);
-   event_t ev=lstage_newevent(str,len);
+   event_t ev=clp_newevent(str,len);
    LOCK(c);
    if(c->closed) {
 	   UNLOCK(c);
@@ -236,17 +248,17 @@ static int channel_trypush(lua_State *L) {
       return 1;
    }
    instance_t ins=NULL;
-   if(lstage_lfqueue_try_pop(c->read_queue,&ins)) {
+   if(clp_lfqueue_try_pop(c->read_queue,&ins)) {
   		UNLOCK(c);
    	lua_settop(ins->L,0);
    	ins->ev=ev;
 		ins->flags=I_READY;
-		lstage_pushinstance(ins);
+		clp_pushinstance(ins);
 		lua_pushboolean(L,1);
 		return 1;
    }
    UNLOCK(c);
-   lstage_destroyevent(ev);
+   clp_destroyevent(ev);
    lua_pushnil(L);
    lua_pushliteral(L,"Wait queue is empty");
    return 2;
@@ -254,29 +266,38 @@ static int channel_trypush(lua_State *L) {
 
 
 static int channel_getevent(lua_State *L) {
-	channel_t c = lstage_tochannel(L,1);
+	channel_t c = clp_tochannel(L,1);
 	event_t ev=NULL;
 	_DEBUG("CHANNEL GET EVENT: %p\n",c);
-	lua_pushliteral(L,LSTAGE_INSTANCE_KEY);
+	lua_pushliteral(L,CLP_INSTANCE_KEY);
 	lua_gettable(L, LUA_REGISTRYINDEX);
 	instance_t i=NULL;
    LOCK(c);
-	if(lstage_lfqueue_try_pop(c->event_queue,&ev)) {
+   if(c->waiting) {
+		c->waiting--;
+		int n=clp_restoreevent(L,waiting_event);
+		clp_destroyevent(waiting_event);
+	   waiting_event=NULL;
+	   SIGNAL_ONE(&c->cond);
+  	   UNLOCK(c);
+  	   return n;
+   }
+	if(clp_lfqueue_try_pop(c->event_queue,&ev)) {
   	   _DEBUG("got event\n");
-		if(lstage_lfqueue_try_pop(c->write_queue,&i)) {
+		if(clp_lfqueue_try_pop(c->write_queue,&i)) {
 	  		UNLOCK(c);
 	  	   _DEBUG("has writers, escalate its event\n");
-			lstage_lfqueue_try_push(c->event_queue,&i->ev);
+			clp_lfqueue_try_push(c->event_queue,&i->ev);
 			i->ev=NULL;
 			i->flags=I_WAITING_WRITE;
-			lstage_pushinstance(i);
-			int n=lstage_restoreevent(L,ev);
-			lstage_destroyevent(ev);
+			clp_pushinstance(i);
+			int n=clp_restoreevent(L,ev);
+			clp_destroyevent(ev);
 			return n;
 		}
   		UNLOCK(c);
-		int n=lstage_restoreevent(L,ev);
-		lstage_destroyevent(ev);
+		int n=clp_restoreevent(L,ev);
+		clp_destroyevent(ev);
 		return n;
 	}
 	if(c->closed) {
@@ -291,8 +312,8 @@ static int channel_getevent(lua_State *L) {
 		SIGNAL_WAIT(&c->cond,&c->mutex,-1.0);
 		int n=0;
 		if(c->event) {
-			n=lstage_restoreevent(L,c->event);
-			lstage_destroyevent(c->event);
+			n=clp_restoreevent(L,c->event);
+			clp_destroyevent(c->event);
 			c->event=NULL;
 		}
 		MUTEX_UNLOCK(&c->mutex);
@@ -301,7 +322,7 @@ static int channel_getevent(lua_State *L) {
 	i=lua_touserdata(L,-1);
 	lua_pop(L,1);
 	i->flags=I_WAITING_CHANNEL;
-	lstage_lfqueue_try_push(c->read_queue,&i);
+	clp_lfqueue_try_push(c->read_queue,&i);
 	UNLOCK(c);
 	//stackDump(L,"Test");
 	return lua_yield(L,0);
@@ -316,17 +337,17 @@ static const struct luaL_Reg ChannelMetaFunctions[] = {
 		{"setsize",channel_setsize},
 		{"get",channel_getevent},
 		{"close",channel_close},
-		{"push",lstage_pushevent},
+		{"push",clp_pushevent},
 		{"tryget",channel_tryget},
 		{"trypush",channel_trypush},
 		{NULL,NULL}
 };
 
 static void get_metatable(lua_State * L) {
-	luaL_getmetatable(L,LSTAGE_CHANNEL_METATABLE);
+	luaL_getmetatable(L,CLP_CHANNEL_METATABLE);
    if(lua_isnil(L,-1)) {
    	lua_pop(L,1);
-  		luaL_newmetatable(L,LSTAGE_CHANNEL_METATABLE);
+  		luaL_newmetatable(L,CLP_CHANNEL_METATABLE);
   		#if LUA_VERSION_NUM < 502
 			luaL_register(L, NULL, ChannelMetaFunctions);
 		#else
@@ -334,12 +355,12 @@ static void get_metatable(lua_State * L) {
 		#endif 
   		lua_pushvalue(L,-1);
   		lua_setfield(L,-2,"__index");
-		luaL_loadstring(L,"local id=(...):__id() return function() return require'lstage.channel'.get(id) end");
+		luaL_loadstring(L,"local id=(...):__id() return function() return require'clp.channel'.get(id) end");
 		lua_setfield (L, -2,"__wrap");
   	}
 }
 
-void lstage_pushchannel(lua_State * L,channel_t t) {
+void clp_pushchannel(lua_State * L,channel_t t) {
 	channel_getcached(L,t);
 	if(lua_type(L,-1)==LUA_TUSERDATA) 
 		return;
@@ -351,7 +372,7 @@ void lstage_pushchannel(lua_State * L,channel_t t) {
    channel_putcache(L,t);
 }
 
-int lstage_channelnew(lua_State *L) {
+int clp_channelnew(lua_State *L) {
 	channel_t t=malloc(sizeof(struct channel_s));
 	int size=luaL_optint(L, 1, -1);
 	int sync=1;
@@ -364,32 +385,32 @@ int lstage_channelnew(lua_State *L) {
 	t->event=NULL;
 	t->lock=0;
 	t->closed=0;
-	t->event_queue=lstage_lfqueue_new();
-	t->read_queue=lstage_lfqueue_new();
-	t->write_queue=lstage_lfqueue_new();
+	t->event_queue=clp_lfqueue_new();
+	t->read_queue=clp_lfqueue_new();
+	t->write_queue=clp_lfqueue_new();
 	t->sync=sync;
-	lstage_lfqueue_setcapacity(t->event_queue,size);
-	lstage_lfqueue_setcapacity(t->read_queue,-1);
-	lstage_pushchannel(L,t);
+	clp_lfqueue_setcapacity(t->event_queue,size);
+	clp_lfqueue_setcapacity(t->read_queue,-1);
+	clp_pushchannel(L,t);
    return 1;
 }
 
 static int channel_get(lua_State * L) {
 	channel_t s=lua_touserdata(L,1);
-	lstage_pushchannel(L,s);
+	clp_pushchannel(L,s);
 	return 1;
 }
 
 static const struct luaL_Reg LuaExportFunctions[] = {
-		{"new",lstage_channelnew},
+		{"new",clp_channelnew},
 		{"get",channel_get},
 		{NULL,NULL}
 };
 
-LSTAGE_EXPORTAPI	int luaopen_lstage_channel(lua_State *L) {
+CLP_EXPORTAPI	int luaopen_clp_channel(lua_State *L) {
 	lua_newtable(L);
 	lua_newtable(L);
-	luaL_loadstring(L,"return function() return require'lstage.channel' end");
+	luaL_loadstring(L,"return function() return require'clp.channel' end");
 	lua_setfield (L, -2,"__persist");
 	lua_setmetatable(L,-2);
 #if LUA_VERSION_NUM < 502

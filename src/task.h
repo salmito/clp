@@ -8,14 +8,14 @@
 ** ===============================================================
 */
 
-#ifndef stage_h
-#define stage_h
+#ifndef TASK_H
+#define TASK_H
 
-typedef struct lstage_Stage * stage_t;
+typedef struct clp_Task * task_t;
 
-#define STAGE_HANDLER_KEY "stage-handler"
+#define TASK_HANDLER_KEY "task.handler"
 
-#include "lstage.h"
+#include "clp.h"
 #include "lf_queue.h"
 #include "pool.h"
 #include "channel.h"
@@ -25,12 +25,12 @@ typedef struct lstage_Stage * stage_t;
 
 #include "lua.h"
 
-#define LSTAGE_INSTANCE_KEY "lstage-instance-key"
-#define LSTAGE_HANDLER_KEY "lstage-handler-key"
-#define LSTAGE_ERRORFUNCTION_KEY "lstage-error-key"
-#define LSTAGE_ENV_KEY "lstage-env-key"
+#define CLP_INSTANCE_KEY "task-instance-key"
+#define CLP_HANDLER_KEY "task-handler-key"
+#define CLP_ERRORFUNCTION_KEY "task-error-key"
+#define CLP_ENV_KEY "task-env-key"
 
-struct lstage_Stage {
+struct clp_Task {
    MUTEX_T intances_mutex;
 	volatile int instances;
 	channel_t input;
@@ -38,15 +38,14 @@ struct lstage_Stage {
 	pool_t pool;
 	char * env;
 	size_t env_len;
-   stage_t parent;
+   task_t parent;
 };
 
-stage_t lstage_tostage(lua_State *L, int i);
-void lstage_buildstage(lua_State * L,stage_t t);
+task_t clp_totask(lua_State *L, int i);
+void clp_buildtask(lua_State * L,task_t t);
 
 //instance
 typedef struct instance_s * instance_t;
-
 
 enum instance_flag_t {
 	I_CREATED=0x0,
@@ -63,16 +62,16 @@ enum instance_flag_t {
 
 struct instance_s {
    lua_State * L;
-   stage_t stage;
+   task_t stage;
    event_t ev;
    int flags;
    int args;
 };
 
-instance_t lstage_newinstance(stage_t s);
-void lstage_initinstance(instance_t i);
-void lstage_destroyinstance(instance_t i);
-void lstage_putinstance(instance_t i);
+instance_t clp_newinstance(task_t s);
+void clp_initinstance(instance_t i);
+void clp_destroyinstance(instance_t i);
+void clp_putinstance(instance_t i);
 
 
-#endif
+#endif //TASK_H

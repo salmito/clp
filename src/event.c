@@ -1,6 +1,6 @@
-#include "lstage.h"
+#include "clp.h"
 #include "event.h"
-#include "stage.h"
+#include "task.h"
 #include "threading.h"
 #include "scheduler.h"
 #include "marshal.h"
@@ -13,7 +13,7 @@
 static THREAD_T * event_thread;
 static struct event_base *loop;
 
-event_t lstage_newevent(const char * ev, size_t len) {
+event_t clp_newevent(const char * ev, size_t len) {
    event_t e=malloc(sizeof(struct event_s));
    e->data=malloc(len);
    memcpy(e->data,ev,len);
@@ -21,7 +21,7 @@ event_t lstage_newevent(const char * ev, size_t len) {
    return e;
 }
 
-void lstage_destroyevent(event_t e) {
+void clp_destroyevent(event_t e) {
    free(e->data);
    free(e);
 }
@@ -32,7 +32,7 @@ static void io_ready(evutil_socket_t fd, short event, void *arg) {
 	instance_t i=(instance_t)arg;
 	if(event&EV_TIMEOUT) 
       i->flags=I_TIMEOUT_IO;
-	lstage_pushinstance(i);
+	clp_pushinstance(i);
 }
 
 static int event_wait_io(lua_State * L) {
@@ -50,7 +50,7 @@ static int event_wait_io(lua_State * L) {
    if(lua_type(L,3)==LUA_TNUMBER) {
       time=lua_tonumber(L,3);
    }
-  	lua_pushliteral(L,LSTAGE_INSTANCE_KEY);
+  	lua_pushliteral(L,CLP_INSTANCE_KEY);
 	lua_gettable(L, LUA_REGISTRYINDEX);
 	if(lua_type(L,-1)!=LUA_TLIGHTUSERDATA) luaL_error(L,"Cannot wait outside of an instance");
 	instance_t i=lua_touserdata(L,-1);
@@ -69,7 +69,7 @@ static int event_sleep(lua_State *L) {
    double time=0.0l;  
    time=lua_tonumber(L,1);
    if(time<0.0L) luaL_error(L,"Invalid time (negative)");
-  	lua_pushliteral(L,LSTAGE_INSTANCE_KEY);
+  	lua_pushliteral(L,CLP_INSTANCE_KEY);
 	lua_gettable(L, LUA_REGISTRYINDEX);
 	if(lua_type(L,-1)!=LUA_TLIGHTUSERDATA) {
 		usleep((useconds_t)(time*1000000.0L));
@@ -93,7 +93,7 @@ static THREAD_RETURN_T THREAD_CALLCONV event_main(void *t_val) {
 	return NULL;
 }
 
-int lstage_restoreevent(lua_State *L,event_t ev) {
+int clp_restoreevent(lua_State *L,event_t ev) {
 //	stackDump(L,"");
    lua_pushcfunction(L,mar_decode);
    lua_pushlstring(L,ev->data,ev->len);
@@ -112,7 +112,7 @@ int lstage_restoreevent(lua_State *L,event_t ev) {
 	return n;
 }
 
-LSTAGE_EXPORTAPI	int luaopen_lstage_event(lua_State *L) {
+CLP_EXPORTAPI	int luaopen_clp_event(lua_State *L) {
 	const struct luaL_Reg LuaExportFunctions[] = {
 	{"encode",mar_encode},
 	{"decode",mar_decode},
@@ -129,7 +129,7 @@ LSTAGE_EXPORTAPI	int luaopen_lstage_event(lua_State *L) {
 	}
 	lua_newtable(L);
 	lua_newtable(L);
-	luaL_loadstring(L,"return function() return require'lstage.event' end");
+	luaL_loadstring(L,"return function() return require'clp.event' end");
 	lua_setfield (L, -2,"__persist");
 	lua_setmetatable(L,-2);
 	lua_pushliteral(L,"READ");

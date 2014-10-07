@@ -8,10 +8,10 @@
 ** ===============================================================
 */
 
-#ifndef _LSTAGE_H
-#define _LSTAGE_H
+#ifndef _CLP_H
+#define _CLP_H
 
-#define LSTAGE_VERSION "1.0.0-beta"
+#define CLP_VERSION "1.0.0-beta"
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -26,18 +26,18 @@ void tableDump(lua_State *L, int idx, const char* text);
 #define tableDump(...) 
 #endif
 
-#ifndef LSTAGE_EXPORTAPI
+#ifndef CLP_EXPORTAPI
         #ifdef _WIN32
-                #define LSTAGE_EXPORTAPI __declspec(dllexport)
+                #define CLP_EXPORTAPI __declspec(dllexport)
         #else
-                #define LSTAGE_EXPORTAPI extern
+                #define CLP_EXPORTAPI extern
         #endif
 #endif  
 
-#define LSTAGE_STAGE_METATABLE "lstage-Stage *"
-#define LSTAGE_POOL_METATABLE "lstage-Pool *"
-#define LSTAGE_THREAD_METATABLE "lstage-Thread *"
-#define LSTAGE_CHANNEL_METATABLE "lstage-Channel *"
+#define CLP_TASK_METATABLE "clp-Task *"
+#define CLP_POOL_METATABLE "clp-Pool *"
+#define CLP_THREAD_METATABLE "clp-Thread *"
+#define CLP_CHANNEL_METATABLE "clp-Channel *"
 #if LUA_VERSION_NUM < 502
 	#define LUA_REGISTER(L,f) luaL_register(L, NULL, f)
 #else

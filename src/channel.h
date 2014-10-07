@@ -1,13 +1,13 @@
 #ifndef _CHANNEL_H_
 #define _CHANNEL_H_
 
-#include "lstage.h"
+#include "clp.h"
 #include "lf_queue.h"
 #include "threading.h"
 
 typedef struct channel_s  * channel_t;
 
-#define LSTAGE_CHANNEL_CACHE "lstage-channel-cache"
+#define CLP_CHANNEL_CACHE "clp-channel-cache"
 
 #include "event.h"
 
@@ -24,10 +24,9 @@ struct channel_s {
 	int sync;
 };
 
-//channel_t * lstage_newchannel(lua_State *L);
-channel_t lstage_tochannel(lua_State *L, int i);
-int lstage_channelnew(lua_State *L);
-void lstage_pushchannel(lua_State * L,channel_t t);
-int lstage_pushevent(lua_State *L);
+channel_t clp_tochannel(lua_State *L, int i);
+int clp_channelnew(lua_State *L);
+void clp_pushchannel(lua_State * L,channel_t t);
+int clp_pushevent(lua_State *L);
 
 #endif

@@ -1,14 +1,14 @@
-local lstage=require'lstage'
+local clp=require'clp'
 
-local s1,s2,s3=lstage.stage(),lstage.stage(),lstage.stage()
-print('init',lstage.pool:size())
-lstage.pool:kill()
-print('init',lstage.pool:size())
-lstage.pool:add(lstage.cpus()-1)
-print('init',lstage.pool:size())
+local s1,s2,s3=clp.task(),clp.task(),clp.task()
+print('init',clp.pool:size())
+clp.pool:kill()
+print('init',clp.pool:size())
+clp.pool:add(clp.cpus()-1)
+print('init',clp.pool:size())
 
-local chan=lstage.channel()
-local chan2=lstage.channel()
+local chan=clp.channel()
+local chan2=clp.channel()
 
 local function p(name)
   print('entering',name)
@@ -32,18 +32,21 @@ end)()
 s3:wrap(p)('stage3')
 s2:wrap(p)('stage2')
 print('end',chan2:get())
-local chan3=lstage.channel(1)
+local chan3=clp.channel(1,true)
 chan3:push(1)
 print('should fail',chan3:push(1))
 
-local chan4=lstage.channel():push(1):push(2):push(3)
+local chan4=clp.channel()
+chan4:push(1)
+chan4:push(2)
+chan4:push(3)
 chan4:close()
 
 print(chan4:get(),chan4:get(),chan4:get())
 
 print(pcall(chan4.get,chan4)) --fail
 
-local s=lstage.stage(function(msg) print('hello',msg) return msg end):add(4)('john')('paul')('george')('ringo')
+local s=clp.task(function(msg) print('hello',msg) return msg end):add(4)('john')('paul')('george')('ringo')
 
 s:input():close()
 while true do print('resp',s:output():get()) end

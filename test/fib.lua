@@ -1,4 +1,4 @@
-local lstage=require'lstage'
+local clp=require'clp'
 
 local _=require'_'
 
@@ -7,11 +7,11 @@ local n=tonumber(({...})[2]) or 36
 
 local bench={
 	start=function(self)
-		self.t=lstage.now()
+		self.t=clp.now()
 		self.c=os.clock()
 	end,
 	stop=function(self)
-		return lstage.now()-self.t,os.clock()-self.c
+		return clp.now()-self.t,os.clock()-self.c
 	end,
 	clock=function(self,str)
 		local t,c=self:stop()
@@ -28,7 +28,7 @@ local function fib(n)
 	return fib(n-1)+fib(n-2)
 end
 
-local s=_.future()
+local s=clp.task()
 s:wrap(function(n)
 	if n < cutoff then return fib(n) end
 	local f1,f2=s(n-1),s(n-2)
@@ -38,7 +38,7 @@ end)
 
 s.s:add(n)
 
-s.s:pool():add(lstage.cpus()-1)
+s.s:pool():add(clp.cpus()-1)
 
 local f=s(v)
 local v1=f:get()

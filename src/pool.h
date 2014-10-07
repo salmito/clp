@@ -3,7 +3,7 @@
 
 #include <lua.h>
 
-#include "lstage.h"
+#include "clp.h"
 #include "lf_queue.h"
 
 typedef struct pool_s {
@@ -11,7 +11,7 @@ typedef struct pool_s {
 	LFqueue_t ready;
 } * pool_t;
 
-pool_t lstage_topool(lua_State *L, int i);
-void lstage_buildpool(lua_State * L,pool_t t);
+pool_t clp_topool(lua_State *L, int i);
+void clp_buildpool(lua_State * L,pool_t t);
 
 #endif
