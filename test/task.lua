@@ -16,14 +16,14 @@ assert(clp.pool==s1:pool())
 			assert(clp:self():parent()==s1)
 		)
 		collectgarbage('collect')
-	end):push()
+	end)()
 	
 	collectgarbage('collect')
 end
 
 s1:wrap(handler)
 s1:add(1)
-print('push',s1,s1:push('par1',math.pi))
+print('put',s1,s1('par1',math.pi))
 
 print(s1,s1:env(),s1:size(),s1:input())
 

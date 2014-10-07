@@ -1,7 +1,5 @@
 local clp=require'clp'
 
-local _=require'_'
-
 local v=tonumber(({...})[1]) or 36
 local n=tonumber(({...})[2]) or 36
 
@@ -21,6 +19,8 @@ local bench={
 
 bench:start()
 
+--IMPLEMENTATION START
+
 local cutoff=35
 
 local function fib(n)
@@ -28,20 +28,31 @@ local function fib(n)
 	return fib(n-1)+fib(n-2)
 end
 
-local s=clp.task()
-s:wrap(function(n)
-	if n < cutoff then return fib(n) end
-	local f1,f2=s(n-1),s(n-2)
-	return f1:get()+f2:get()
-	--return s(v-1):get()+s(v-2):get()
+local fib_t=clp.task()
+
+local i=fib_t:input()
+
+fib_t:wrap(function(res,n)
+	if n < cutoff then res:put(fib(n)) return end
+
+	local c1,c2=clp.channel(),clp.channel()
+
+	local _,_,r=i:size()
+	if r==0 then fib_t:add(1) end
+	
+	fib_t(c1,n-1)
+	fib_t(c2,n-2)
+
+	res:put(c1:get()+c2:get())
 end)
 
-s.s:add(n)
+fib_t:add(n)
 
-s.s:pool():add(clp.cpus()-1)
+fib_t:pool():add(clp.cpus()-1)
 
-local f=s(v)
-local v1=f:get()
+out=clp.channel()
+fib_t(out,v)
+local v1=out:get()
 print(v1)
 bench:clock('par')
 bench:start()

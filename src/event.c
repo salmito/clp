@@ -80,6 +80,7 @@ static int event_sleep(lua_State *L) {
 	lua_pop(L,1);
 	i->flags=I_WAITING_IO;
   	struct timeval to={time,(((double)time-((int)time))*1000000.0L)};
+  	printf("SEC %ld usec %ld\n",to.tv_sec,to.tv_usec);
    event_base_once(loop,-1,EV_TIMEOUT,io_ready,i,&to);
    return lua_yield(L,0);
 }

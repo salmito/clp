@@ -34,7 +34,7 @@ local s2=clp.task(function()
 	i=(i or 0) +1
 	if i==n then
 		print('finish')
-		finish:push('end')
+		finish:put('end')
 	end 
 end)
 
@@ -43,7 +43,7 @@ local function f()
   for i=1,it do
     n=(n+i)
   end
-  s2:push()
+  s2()
 end
 
 local s={}
@@ -55,7 +55,7 @@ local str='\t'..n..'\t'..it..'\t'
 local s1=clp.task(f,n)
 
 for i=1,n do
-	s1:push()
+	s1()
 end
 startup:clock('start_time'..str)
 

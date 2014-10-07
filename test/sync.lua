@@ -7,14 +7,14 @@ print('pool',clp.pool:size())
 local function call(s,...)
   local input,output=clp.channel(1),clp.channel(1)
   
-  input:push(...)
-  s:push(input,output)
+  input:put(...)
+  s(input,output)
   return output:get()
 end
 
 local function sync(f,...)
   return clp.task(function(i,o)
-     o:push(f(i:get()))
+     o:put(f(i:get()))
   end,...)
 end
 
@@ -46,7 +46,7 @@ print(clp.now()-init,call(authenticate,{user='Me',hash='pass123'},'pass321'))
 local function chain(s1,s2,...) 
   return clp.task(
     function(...)
-      s2:push(call(s1,...))
+      s2(call(s1,...))
     end,...)
 end
 
@@ -56,10 +56,10 @@ end)
 
 local a=chain(authenticate,print_s,clp:cpus())
 
-print(clp.now()-init,'pushing')
-a:push({user='Me',hash='pass'},'pass2')
-a:push({user='Me',hash='pass123'},'pass')
-a:push({user='Me',hash='pass123'},'pass321')
-a:push({user='Me',hash='pass123'},'pass123')
+print(clp.now()-init,'puting')
+a({user='Me',hash='pass'},'pass2')
+a({user='Me',hash='pass123'},'pass')
+a({user='Me',hash='pass123'},'pass321')
+a({user='Me',hash='pass123'},'pass123')
 print(clp.now()-init,'asynchronous call')
 while true do clp.event.sleep(1000) end

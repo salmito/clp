@@ -7,7 +7,7 @@ local function add_timer(time,f)
 			clp.event.sleep(time)
 			f()		
 		end
-	end):push()
+	end)()
 end
 
 function handler(id) return function()

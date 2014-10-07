@@ -28,7 +28,7 @@ local task1=clp.task(function(str)
 	while true do
 		print(str)
 		e.sleep(0.5)
-		task2:push('event','test2')
+		task2('event','test2')
 	end
 end,function() print(require'debug'.traceback()) end)
 
@@ -42,7 +42,7 @@ print("task2",task2)
 
 print("Instantiated",task1,task1:size())
 
-task1:push('test')
+task1('test')
 
 --task2:add(1)
 

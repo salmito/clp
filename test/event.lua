@@ -13,7 +13,7 @@ local sleep=clp.task(function(...)
 	end
 	print("done",...)
 end)
-sleep:push("event1")
+sleep("event1")
 
 local function handler(str,thread)
 	local io=require'io'
@@ -28,7 +28,7 @@ local function handler(str,thread)
 end
 
 local stage=clp.task(handler,1,1)
-stage:push('test',thread)
+stage('test',thread)
 print('Type something in the next 10s')
 
 event.sleep(10)

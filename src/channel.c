@@ -72,7 +72,7 @@ static int channel_getsize(lua_State * L) {
 	lua_pushnumber(L,clp_lfqueue_size(s->event_queue));
 	lua_pushnumber(L,clp_lfqueue_getcapacity(s->event_queue));
 	lua_pushnumber(L,clp_lfqueue_size(s->read_queue));
-	lua_pushnumber(L,clp_lfqueue_getcapacity(s->read_queue));
+	lua_pushnumber(L,clp_lfqueue_size(s->write_queue));
 	return 4;
 }
 
@@ -174,7 +174,7 @@ int clp_pushevent(lua_State *L) {
       return 1;
    } else if(c->sync) {
 	   ins=lua_touserdata(L,-1);
-  	   printf("channel is sync %p\n",ins);
+  	   _DEBUG("channel is sync %p\n",ins);
 		lua_pop(L,1);
   	   if(ins==NULL) {
 	  	   MUTEX_LOCK(&c->mutex);
@@ -199,71 +199,6 @@ int clp_pushevent(lua_State *L) {
    lua_pushliteral(L,"Event queue is full");
    return 2;
 }
-
-static int channel_tryget(lua_State *L) {
-   channel_t c = clp_tochannel(L,1);
-	event_t ev=NULL;
-   LOCK(c);
-   if(clp_lfqueue_try_pop(c->event_queue,(void **)&ev)) {
-	   UNLOCK(c);
-      lua_pushboolean(L,1);
-		int n=clp_restoreevent(L,ev);
-		clp_destroyevent(ev);
-		return n+1;
-	}
-	UNLOCK(c);
-	lua_pushnil(L);
-	return 1;
-}
-
-static int channel_trypush(lua_State *L) {
-	channel_t c = clp_tochannel(L,1);
-   int top=lua_gettop(L);
-  	_DEBUG("CHANNEL PUSH EVENT: %p %d\n",c,top);
-   lua_pushcfunction(L,mar_encode);
-   lua_newtable(L);
-   int i;
-   for(i=2;i<=top;i++) {
-      lua_pushvalue(L,i);
-      lua_rawseti(L,-2,i-1);
-   }
-   lua_call(L,1,1);
-   size_t len;
-   const char * str=lua_tolstring(L,-1,&len);
-   lua_pop(L,1);
-   event_t ev=clp_newevent(str,len);
-   LOCK(c);
-   if(c->closed) {
-	   UNLOCK(c);
-   	lua_pushnil(L);
-   	lua_pushliteral(L,"closed");
-   	return 2;
-   }
-   if(c->waiting>0) {
-	   c->waiting--;
-   	c->event=ev;
-	   SIGNAL_ONE(&c->cond);
-  	   UNLOCK(c);
-   	lua_pushboolean(L,1);
-      return 1;
-   }
-   instance_t ins=NULL;
-   if(clp_lfqueue_try_pop(c->read_queue,&ins)) {
-  		UNLOCK(c);
-   	lua_settop(ins->L,0);
-   	ins->ev=ev;
-		ins->flags=I_READY;
-		clp_pushinstance(ins);
-		lua_pushboolean(L,1);
-		return 1;
-   }
-   UNLOCK(c);
-   clp_destroyevent(ev);
-   lua_pushnil(L);
-   lua_pushliteral(L,"Wait queue is empty");
-   return 2;
-}
-
 
 static int channel_getevent(lua_State *L) {
 	channel_t c = clp_tochannel(L,1);
@@ -337,9 +272,7 @@ static const struct luaL_Reg ChannelMetaFunctions[] = {
 		{"setsize",channel_setsize},
 		{"get",channel_getevent},
 		{"close",channel_close},
-		{"push",clp_pushevent},
-		{"tryget",channel_tryget},
-		{"trypush",channel_trypush},
+		{"put",clp_pushevent},
 		{NULL,NULL}
 };
 

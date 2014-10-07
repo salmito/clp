@@ -17,29 +17,29 @@ local function p(name)
     print(name,'received',(require'table'.unpack or unpack)(t))
     if #t==0 then break end
   end
-  chan2:push('finished')
+  chan2:put('finished')
 end
 
 s1:wrap(function()
   local i=0
   while i<10 do
-    chan:push('event',i)
+    chan:put('event',i)
     i=i+1
   end  
-  chan:push()
+  chan:put()
 end)()
 
 s3:wrap(p)('stage3')
 s2:wrap(p)('stage2')
 print('end',chan2:get())
 local chan3=clp.channel(1,true)
-chan3:push(1)
-print('should fail',chan3:push(1))
+chan3:put(1)
+print('should fail',chan3:put(1))
 
 local chan4=clp.channel()
-chan4:push(1)
-chan4:push(2)
-chan4:push(3)
+chan4:put(1)
+chan4:put(2)
+chan4:put(3)
 chan4:close()
 
 print(chan4:get(),chan4:get(),chan4:get())

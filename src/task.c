@@ -66,21 +66,6 @@ get_max_instances (lua_State * L)
 }
 
 static int
-task_push (lua_State * L)
-{
-	task_t s = clp_totask (L, 1);
-	lua_pushcfunction(L,clp_pushevent);
-	lua_insert(L,2);
-	clp_pushchannel(L,s->input);
-	lua_insert(L,3);
-	lua_call(L,lua_gettop(L)-2,LUA_MULTRET);
-	if(lua_type(L,-1)==LUA_TBOOLEAN) {
-		lua_pop(L,1);
-	}
-	return lua_gettop(L);
-}
-
-static int
 task_getenv (lua_State * L)
 {
 	lua_getfield(L, LUA_REGISTRYINDEX, CLP_HANDLER_KEY);
@@ -326,13 +311,11 @@ static const struct luaL_Reg StageMetaFunctions[] = {
 	{"__eq", task_eq},
 	{"__gc", task_gc},
 	{"__tostring", task_tostring},
-	{"__call", task_push},
+//	{"__call", task_push},
 	{"__id", task_ptr},
-		
 	{"size", get_max_instances},
 	{"env", task_getenv},
 	{"wrap", task_wrap},
-	{"push", task_push},
 	{"input", task_input},
 	{"setinput", task_setinput},
 	{"setoutput", task_setoutput},
@@ -358,6 +341,9 @@ get_stagemetatale (lua_State * L)
 		  lua_pushvalue (L, -1);
 		  lua_setfield (L, -2, "__index");
 		  luaL_loadstring (L,
+				   "local t=(...) assert(t:input():put(select(2,...))) return t");
+		  lua_setfield (L, -2, "__call");				   
+   	  luaL_loadstring (L,
 				   "local ptr=(...):__id() return function() return require'clp.task'.get(ptr) end");
 		  lua_setfield (L, -2, "__wrap");
 	  }
@@ -498,7 +484,7 @@ clp_gettask (lua_State * L)
 		  return 1;
 	  }
 	lua_pushnil (L);
-	lua_pushliteral (L, "Stage not found");
+	lua_pushliteral (L, "Task not found");
 	return 2;
 }
 
@@ -506,7 +492,7 @@ static const struct luaL_Reg LuaExportFunctions[] = {
 	{"new", clp_newtask},
 	{"get", clp_gettask},
 	{"destroy", clp_destroytask},
-	{"is_stage", task_isstage},
+	{"istask", task_isstage},
 	{NULL, NULL}
 };
 
@@ -564,7 +550,7 @@ void clp_initinstance(instance_t i) {
 							"local h=a[1].f "
   	                  "local s=a[4] "
 							"a[1].e = a[1].e or function(e) s:input():close() s:output():close() return e end "
-	                  "return require'coroutine'.wrap(function() while true do s:output():push(h(s:input():get())) end end)"
+	                  "return require'coroutine'.wrap(function() while true do s:output():put(h(s:input():get())) end end)"
 	                  );
 	lua_pushcfunction(L,mar_decode);
 	lua_pushlstring(L,i->stage->env,i->stage->env_len);
