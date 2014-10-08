@@ -10,6 +10,11 @@
 #include <event2/thread.h>
 #include <unistd.h>
 
+
+#ifdef _WIN32
+#define usleep(a) Sleep(a / 1000)
+#endif
+
 static THREAD_T * event_thread;
 static struct event_base *loop;
 
@@ -72,7 +77,7 @@ static int event_sleep(lua_State *L) {
   	lua_pushliteral(L,CLP_INSTANCE_KEY);
 	lua_gettable(L, LUA_REGISTRYINDEX);
 	if(lua_type(L,-1)!=LUA_TLIGHTUSERDATA) {
-		usleep((useconds_t)(time*1000000.0L));
+		usleep(time*1000000.0);
 		lua_pop(L,1);
 		return 0;
 	}
