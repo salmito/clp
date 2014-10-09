@@ -18,24 +18,6 @@ thread_t clp_tothread(lua_State *L, int i) {
 	return *t;
 }
 
-static int thread_join (lua_State *L) {
-	thread_t t=clp_tothread(L,1);
-	int timeout=lua_tointeger(L,2);
-	if(timeout>0) {
-		struct timespec to;
-		clock_gettime(CLOCK_REALTIME, &to);
-		to.tv_sec += timeout;
-		#ifdef _WIN32
-	   pthread_join(*t->th,NULL);
-		#else
-		pthread_timedjoin_np(*t->th,NULL,&to);
-		#endif	
-   } else {
-	   pthread_join(*t->th,NULL);
-   }
-   return 0;
-}
-
 static int thread_rawkill (lua_State *L) {
    thread_t t=clp_tothread(L,1);
    THREAD_KILL(t->th);
@@ -64,7 +46,6 @@ static int thread_eq(lua_State * L) {
 static const struct luaL_Reg StageMetaFunctions[] = {
 		{"__tostring",thread_tostring},
 		{"__eq",thread_eq},
-		{"join",thread_join},
 		{"__id",thread_ptr},
 		{"state",thread_state},
 		{"rawkill",thread_rawkill},
@@ -178,17 +159,6 @@ static THREAD_RETURN_T THREAD_CALLCONV thread_mainloop(void *t_val) {
   	_DEBUG("Thread %p quitting\n",self);
   	self->pool->size--; //TODO atomic
    return t_val;
-}
-
-int clp_joinpool(lua_State *L,pool_t pool) {
-	thread_t * thread=lua_newuserdata(L,sizeof(thread_t));
-	thread_t t=malloc(sizeof(struct thread_s));
-	*t->th=pthread_self();
-	t->pool=pool;
-	t->state=THREAD_IDLE;
-	*thread=t;
-	(void)thread_mainloop(t);
-	return 1;
 }
 
 int clp_newthread(lua_State *L,pool_t pool) {

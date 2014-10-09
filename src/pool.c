@@ -31,12 +31,7 @@ static int pool_ptr(lua_State * L) {
 	lua_pushlightuserdata(L,*s);
 	return 1;
 }
-static int pool_join(lua_State * L) {
-	pool_t p=clp_topool(L, 1);
-	p->size++;
-	(void)clp_joinpool(L,p);
-	return 1;
-}
+
 static int pool_addthread(lua_State * L) {
 	pool_t s=clp_topool(L, 1);
 	int size=luaL_optint(L, 2, 1);
@@ -95,8 +90,6 @@ static void get_metatable(lua_State * L) {
   		lua_setfield(L,-2,"add");
  		lua_pushcfunction(L,pool_killthread);
   		lua_setfield(L,-2,"kill");
-		lua_pushcfunction(L,pool_join);
-  		lua_setfield(L,-2,"join");
   	}
 }
 

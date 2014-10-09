@@ -147,7 +147,7 @@ int clp_pushevent(lua_State *L) {
    	lua_pushliteral(L,"closed");
    	return 2;
    } if(c->waiting) {
-  	   _DEBUG("main process waiting\n");
+  	   _DEBUG("Push: main process waiting\n");
 	   c->waiting--;
    	c->event=ev;
 	   SIGNAL_ONE(&c->cond);
@@ -158,7 +158,7 @@ int clp_pushevent(lua_State *L) {
    }
    if(clp_lfqueue_try_pop(c->read_queue,&ins)) {
   		UNLOCK(c);
-  	   _DEBUG("got waiter\n");
+  	   _DEBUG("Push: got waiter\n");
    	lua_settop(ins->L,0);
    	ins->ev=ev;
 		ins->flags=I_READY;
@@ -168,24 +168,25 @@ int clp_pushevent(lua_State *L) {
 		return 1;
    } else if(clp_lfqueue_try_push(c->event_queue,&ev)) {
 	   UNLOCK(c);
-  	   _DEBUG("used event queue\n");
+  	   _DEBUG("Push: used event queue\n");
   	   lua_pop(L,1);
       lua_pushboolean(L,1);
       return 1;
    } else if(c->sync) {
 	   ins=lua_touserdata(L,-1);
-  	   _DEBUG("channel is sync %p\n",ins);
+  	   _DEBUG("Push: channel is sync %p\n",ins);
 		lua_pop(L,1);
   	   if(ins==NULL) {
 	  	   MUTEX_LOCK(&c->mutex);
-	  		UNLOCK(c);
 			waiting_event=ev;
 			c->waiting++;
+	  		UNLOCK(c);
 			SIGNAL_WAIT(&c->cond,&c->mutex,-1.0);
 			MUTEX_UNLOCK(&c->mutex);
 	   	lua_pushboolean(L,1);
 			return 1;
   	   }
+  	   _DEBUG("Push: waiting %p\n",ins);
 		ins->ev=ev;
 		ins->flags=I_WAITING_CHANNEL;
 		clp_lfqueue_try_push(c->write_queue,&ins);
@@ -209,6 +210,7 @@ static int channel_getevent(lua_State *L) {
 	instance_t i=NULL;
    LOCK(c);
    if(c->waiting) {
+	   _DEBUG("get: main process is waiting \n");
 		c->waiting--;
 		int n=clp_restoreevent(L,waiting_event);
 		clp_destroyevent(waiting_event);
@@ -218,11 +220,11 @@ static int channel_getevent(lua_State *L) {
   	   return n;
    }
 	if(clp_lfqueue_try_pop(c->event_queue,&ev)) {
-  	   _DEBUG("got event\n");
+  	   _DEBUG("get: got from event queue \n");
 		if(clp_lfqueue_try_pop(c->write_queue,&i)) {
-	  		UNLOCK(c);
-	  	   _DEBUG("has writers, escalate its event\n");
+	  	   _DEBUG("get: has writers, escalate its event\n");
 			clp_lfqueue_try_push(c->event_queue,&i->ev);
+	  		UNLOCK(c);
 			i->ev=NULL;
 			i->flags=I_WAITING_WRITE;
 			clp_pushinstance(i);
@@ -231,6 +233,7 @@ static int channel_getevent(lua_State *L) {
 			return n;
 		}
   		UNLOCK(c);
+  	   _DEBUG("get: event restored %p\n",ev);
 		int n=clp_restoreevent(L,ev);
 		clp_destroyevent(ev);
 		return n;
@@ -241,9 +244,10 @@ static int channel_getevent(lua_State *L) {
 	   return 0;
 	}
 	if(lua_type(L,-1)!=LUA_TLIGHTUSERDATA) {
-  		UNLOCK(c);
+  	   _DEBUG("get: main process, gotta wait :( %p\n",ev);
 		MUTEX_LOCK(&c->mutex);
 		c->waiting++;
+  		UNLOCK(c);
 		SIGNAL_WAIT(&c->cond,&c->mutex,-1.0);
 		int n=0;
 		if(c->event) {
@@ -251,7 +255,9 @@ static int channel_getevent(lua_State *L) {
 			clp_destroyevent(c->event);
 			c->event=NULL;
 		}
+
 		MUTEX_UNLOCK(&c->mutex);
+
 		return n;
 	}
 	i=lua_touserdata(L,-1);
