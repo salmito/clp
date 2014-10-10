@@ -2,6 +2,7 @@
 #include "scheduler.h"
 #include "threading.h"
 #include "event.h"
+#include "channel.h"
 #include "marshal.h"
 
 #include <time.h>
@@ -66,17 +67,17 @@ static void get_metatable(lua_State * L) {
 }
 
 static void thread_resume_instance(instance_t i) {
-	_DEBUG("Resuming instance: %p %d lua_State (%p)\n",i,i->flags,i->L);
+	_DEBUG("Resuming instance: %p %d lua_State (%p)\n",i,i->state,i->L);
 
 	lua_State * L=i->L;
-	if(i->flags==I_CREATED) {
+	if(i->state==I_CREATED) {
 		clp_initinstance(i);
 	}
 	i->args=0;
 	lua_getfield(L,LUA_REGISTRYINDEX,CLP_ERRORFUNCTION_KEY);
 	lua_getfield(L,LUA_REGISTRYINDEX,TASK_HANDLER_KEY);
 
-	switch(i->flags) {
+	switch(i->state) {
 		case I_CLOSED:
 			lua_pop(L,1);
 			lua_getglobal(L,"error");
@@ -111,19 +112,14 @@ static void thread_resume_instance(instance_t i) {
 				i->args=n;
 			}
 			break;
-		case I_WAITING_IO:
+		case I_RESUME_SUCCESS:
 			lua_pushboolean(L,1);
 			i->args=1;
 			break;
-		case I_TIMEOUT_IO:
+		case I_RESUME_FAIL:
 			lua_pushboolean(L,0);
 			i->args=1;
 		   break;
-		case I_WAITING_WRITE:
-			i->flags=I_READY;
-			lua_pushboolean(L,1);
-			i->args=1;		
-			break;
 		default:
 			lua_pop(L,2);
 			return;
@@ -135,10 +131,24 @@ static void thread_resume_instance(instance_t i) {
       return;
    }
   	lua_pop(L,1);
-//  	printf("instance %s\n",instance_state[i->flags]);
-  	if(i->flags==I_READY) { //instance yield
-  		clp_pushinstance(i);
-  	}
+//  	printf("instance %s\n",instance_state[i->state]);
+  	switch(i->state) {
+  		case I_READY:
+	  		clp_pushinstance(i);
+	  		break;
+  		case I_CHANNEL_READ:
+			clp_lfqueue_try_push(i->chan->read_queue,&i);
+			CHANNEL_UNLOCK(i->chan);
+			i->chan=NULL;
+			break;
+		case I_CHANNEL_WRITE:
+			clp_lfqueue_try_push(i->chan->write_queue,&i);
+			CHANNEL_UNLOCK(i->chan);
+			i->chan=NULL;
+			break;
+		default:
+			break;
+	}
 }
 
 /*thread main loop*/
@@ -185,7 +195,7 @@ static int thread_from_ptr (lua_State *L) {
 }
 
 void clp_pushinstance(instance_t i) {
-	return clp_lfqueue_push(i->stage->pool->ready, &i);
+	return clp_lfqueue_push(i->task->pool->ready, &i);
 }
 
 static const struct luaL_Reg LuaExportFunctions[] = {

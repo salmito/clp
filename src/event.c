@@ -36,7 +36,7 @@ static void dummy_event(evutil_socket_t fd, short events, void *arg) {}
 static void io_ready(evutil_socket_t fd, short event, void *arg) {
 	instance_t i=(instance_t)arg;
 	if(event&EV_TIMEOUT) 
-      i->flags=I_TIMEOUT_IO;
+      i->state=I_RESUME_FAIL;
 	clp_pushinstance(i);
 }
 
@@ -60,7 +60,7 @@ static int event_wait_io(lua_State * L) {
 	if(lua_type(L,-1)!=LUA_TLIGHTUSERDATA) luaL_error(L,"Cannot wait outside of an instance");
 	instance_t i=lua_touserdata(L,-1);
 	lua_pop(L,1);
-	i->flags=I_WAITING_IO;
+	i->state=I_RESUME_SUCCESS;
    if(time>=0.0) {
       struct timeval to={time,(((double)time-((int)time))*1000000.0L)};
       event_base_once(loop, fd, m, io_ready, i, &to);
@@ -83,7 +83,7 @@ static int event_sleep(lua_State *L) {
 	}
 	instance_t i=lua_touserdata(L,-1);
 	lua_pop(L,1);
-	i->flags=I_WAITING_IO;
+	i->state=I_RESUME_SUCCESS;
   	struct timeval to={time,(((double)time-((int)time))*1000000.0L)};
 //  	printf("SEC %ld usec %ld\n",to.tv_sec,to.tv_usec);
    event_base_once(loop,-1,EV_TIMEOUT,io_ready,i,&to);

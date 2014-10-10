@@ -253,7 +253,7 @@ static void prepare_timeout( struct timespec *ts, time_d abs_secs ) {
                               _THREAD_STACK_SIZE,
                               func,
                               data,
-                              0,    // flags (0/CREATE_SUSPENDED)
+                              0,    // state (0/CREATE_SUSPENDED)
                               NULL  // thread id (not used)
                             );    
 

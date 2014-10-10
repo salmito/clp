@@ -32,13 +32,13 @@ typedef struct clp_Task * task_t;
 
 struct clp_Task {
    MUTEX_T intances_mutex;
-	volatile int instances;
-	channel_t input;
-	channel_t output;
+	volatile int instances; /* number of instances */
+	channel_t input; /* input channel */
+	channel_t output; /* output channel */
 	pool_t pool;
 	char * env;
 	size_t env_len;
-   task_t parent;
+   task_t parent; /* parent task */
 };
 
 task_t clp_totask(lua_State *L, int i);
@@ -47,25 +47,25 @@ void clp_buildtask(lua_State * L,task_t t);
 //instance
 typedef struct instance_s * instance_t;
 
-enum instance_flag_t {
+enum instance_state_t {
 	I_CREATED=0x0,
 	I_READY,
 	I_RUNNING,
-	I_WAITING_IO,
-	I_TIMEOUT_IO,
-	I_WAITING_EVENT,
-	I_WAITING_CHANNEL,
+	I_RESUME_SUCCESS,
+	I_RESUME_FAIL,
+	I_CHANNEL_READ,
+	I_CHANNEL_WRITE,
 	I_IDLE,
-	I_CLOSED,
-	I_WAITING_WRITE,
+	I_CLOSED
 };
 
 struct instance_s {
    lua_State * L;
-   task_t stage;
+   task_t task; /* parent task */
    event_t ev;
-   int flags;
+   enum instance_state_t state;
    int args;
+  	channel_t chan; /* waiting channel */
 };
 
 instance_t clp_newinstance(task_t s);

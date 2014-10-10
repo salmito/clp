@@ -5,9 +5,6 @@
 #include "marshal.h"
 #include <stdlib.h>
 
-#define LOCK(q) while (__sync_lock_test_and_set(&(q)->lock,1)) {}
-#define UNLOCK(q) __sync_lock_release(&(q)->lock);
-
 static event_t waiting_event;
 
 channel_t clp_tochannel(lua_State *L, int i) {
@@ -90,19 +87,19 @@ static int channel_setsize(lua_State * L) {
 static int channel_close(lua_State * L) {
 	channel_t c=clp_tochannel(L,1);
    instance_t ins=NULL;
-   LOCK(c);
+   CHANNEL_LOCK(c);
    while(clp_lfqueue_try_pop(c->read_queue,&ins)) {
-  		ins->flags=I_CLOSED;
+  		ins->state=I_CLOSED;
  		ins->args=0;
 		clp_pushinstance(ins);
    }
    while(clp_lfqueue_try_pop(c->write_queue,&ins)) {
-  		ins->flags=I_CLOSED;
+  		ins->state=I_CLOSED;
  		ins->args=0;
 		clp_pushinstance(ins);
    }
    c->closed=1;
-  	UNLOCK(c);
+  	CHANNEL_UNLOCK(c);
 	lua_pushvalue(L,1);
 	return 1;
 }
@@ -138,9 +135,9 @@ int clp_pushevent(lua_State *L) {
    event_t ev=clp_newevent(str,len);
   	lua_pushliteral(L,CLP_INSTANCE_KEY);
 	lua_gettable(L, LUA_REGISTRYINDEX);
-   LOCK(c);
+   CHANNEL_LOCK(c);
    if(c->closed) {
-  	   UNLOCK(c);
+  	   CHANNEL_UNLOCK(c);
   	   _DEBUG("channel closed\n");
   	   lua_pop(L,1);
    	lua_pushnil(L);
@@ -151,23 +148,23 @@ int clp_pushevent(lua_State *L) {
 	   c->waiting--;
    	c->event=ev;
 	   SIGNAL_ONE(&c->cond);
-  	   UNLOCK(c);
+  	   CHANNEL_UNLOCK(c);
   	   lua_pop(L,1);
    	lua_pushboolean(L,1);
       return 1;
    }
    if(clp_lfqueue_try_pop(c->read_queue,&ins)) {
-  		UNLOCK(c);
+  		CHANNEL_UNLOCK(c);
   	   _DEBUG("Push: got waiter\n");
    	lua_settop(ins->L,0);
    	ins->ev=ev;
-		ins->flags=I_READY;
+		ins->state=I_READY;
 		clp_pushinstance(ins);
   	   lua_pop(L,1);
 		lua_pushboolean(L,1);
 		return 1;
    } else if(clp_lfqueue_try_push(c->event_queue,&ev)) {
-	   UNLOCK(c);
+	   CHANNEL_UNLOCK(c);
   	   _DEBUG("Push: used event queue\n");
   	   lua_pop(L,1);
       lua_pushboolean(L,1);
@@ -180,7 +177,7 @@ int clp_pushevent(lua_State *L) {
 	  	   MUTEX_LOCK(&c->mutex);
 			waiting_event=ev;
 			c->waiting++;
-	  		UNLOCK(c);
+	  		CHANNEL_UNLOCK(c);
 			SIGNAL_WAIT(&c->cond,&c->mutex,-1.0);
 			MUTEX_UNLOCK(&c->mutex);
 	   	lua_pushboolean(L,1);
@@ -188,12 +185,11 @@ int clp_pushevent(lua_State *L) {
   	   }
   	   _DEBUG("Push: waiting %p\n",ins);
 		ins->ev=ev;
-		ins->flags=I_WAITING_CHANNEL;
-		clp_lfqueue_try_push(c->write_queue,&ins);
-		UNLOCK(c);
+		ins->state=I_CHANNEL_WRITE;
+		ins->chan=c;
 		return lua_yield(L,0);
 	}
-	UNLOCK(c);
+	CHANNEL_UNLOCK(c);
    _DEBUG("async queue full\n");
    clp_destroyevent(ev);
    lua_pushnil(L);
@@ -208,7 +204,7 @@ static int channel_getevent(lua_State *L) {
 	lua_pushliteral(L,CLP_INSTANCE_KEY);
 	lua_gettable(L, LUA_REGISTRYINDEX);
 	instance_t i=NULL;
-   LOCK(c);
+   CHANNEL_LOCK(c);
    if(c->waiting) {
 	   _DEBUG("get: main process is waiting \n");
 		c->waiting--;
@@ -216,7 +212,7 @@ static int channel_getevent(lua_State *L) {
 		clp_destroyevent(waiting_event);
 	   waiting_event=NULL;
 	   SIGNAL_ONE(&c->cond);
-  	   UNLOCK(c);
+  	   CHANNEL_UNLOCK(c);
   	   return n;
    }
 	if(clp_lfqueue_try_pop(c->event_queue,&ev)) {
@@ -224,22 +220,22 @@ static int channel_getevent(lua_State *L) {
 		if(clp_lfqueue_try_pop(c->write_queue,&i)) {
 	  	   _DEBUG("get: has writers, escalate its event\n");
 			clp_lfqueue_try_push(c->event_queue,&i->ev);
-	  		UNLOCK(c);
+	  		CHANNEL_UNLOCK(c);
 			i->ev=NULL;
-			i->flags=I_WAITING_WRITE;
+			i->state=I_RESUME_SUCCESS;
 			clp_pushinstance(i);
 			int n=clp_restoreevent(L,ev);
 			clp_destroyevent(ev);
 			return n;
 		}
-  		UNLOCK(c);
+  		CHANNEL_UNLOCK(c);
   	   _DEBUG("get: event restored %p\n",ev);
 		int n=clp_restoreevent(L,ev);
 		clp_destroyevent(ev);
 		return n;
 	}
 	if(c->closed) {
-	   UNLOCK(c);
+	   CHANNEL_UNLOCK(c);
 	   luaL_error(L,"Channel was closed");
 	   return 0;
 	}
@@ -247,7 +243,7 @@ static int channel_getevent(lua_State *L) {
   	   _DEBUG("get: main process, gotta wait :( %p\n",ev);
 		MUTEX_LOCK(&c->mutex);
 		c->waiting++;
-  		UNLOCK(c);
+  		CHANNEL_UNLOCK(c);
 		SIGNAL_WAIT(&c->cond,&c->mutex,-1.0);
 		int n=0;
 		if(c->event) {
@@ -255,20 +251,15 @@ static int channel_getevent(lua_State *L) {
 			clp_destroyevent(c->event);
 			c->event=NULL;
 		}
-
 		MUTEX_UNLOCK(&c->mutex);
-
 		return n;
 	}
 	i=lua_touserdata(L,-1);
 	lua_pop(L,1);
-	i->flags=I_WAITING_CHANNEL;
-	clp_lfqueue_try_push(c->read_queue,&i);
-	UNLOCK(c);
-	//stackDump(L,"Test");
+	i->state=I_CHANNEL_READ;
+	i->chan=c;
 	return lua_yield(L,0);
 }
-
 
 static const struct luaL_Reg ChannelMetaFunctions[] = {
 		{"__eq",channel_eq},
