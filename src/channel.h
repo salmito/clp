@@ -24,6 +24,9 @@ struct channel_s {
 	int sync;
 };
 
+#define CHANNEL_LOCK(q) while (__sync_lock_test_and_set(&(q)->lock,1)) {}
+#define CHANNEL_UNLOCK(q) __sync_lock_release(&(q)->lock);
+
 channel_t clp_tochannel(lua_State *L, int i);
 int clp_channelnew(lua_State *L);
 void clp_pushchannel(lua_State * L,channel_t t);

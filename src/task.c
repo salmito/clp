@@ -9,13 +9,13 @@
 #define DEFAULT_QUEUE_CAPACITY -1
 
 
-static void get_stagemetatale (lua_State * L);
+static void get_taskmetatale (lua_State * L);
 extern pool_t clp_defaultpool;
 task_t
 clp_totask (lua_State * L, int i)
 {
 	task_t *s = luaL_checkudata (L, i, CLP_TASK_METATABLE);
-	luaL_argcheck (L, s != NULL, i, "Stage expected");
+	luaL_argcheck (L, s != NULL, i, "Task expected");
 	return *s;
 }
 
@@ -101,7 +101,7 @@ task_wrap (lua_State * L)
 	int top=lua_gettop(L);
 	task_t s = clp_totask (L, 1);
 	if (s->env != NULL)
-		luaL_error (L, "Stage handMUTEX_INITler already set");
+		luaL_error (L, "Task handMUTEX_INITler already set");
 
 	luaL_checktype (L, 2, LUA_TFUNCTION);
 	lua_pushcfunction (L, mar_encode);
@@ -138,7 +138,7 @@ static int
 task_tostring (lua_State * L)
 {
 	task_t *s = luaL_checkudata (L, 1, CLP_TASK_METATABLE);
-	lua_pushfstring (L, "Stage (%p)", *s);
+	lua_pushfstring (L, "Task (%p)", *s);
 	return 1;
 }
 
@@ -167,9 +167,9 @@ task_instantiate (lua_State * L)
 {
 	task_t s = clp_totask (L, 1);
 	if (s->pool == NULL)
-		luaL_error (L, "Stage must be associated to a pool");
+		luaL_error (L, "Task must be associated to a pool");
 	if (s->env == NULL)
-		luaL_error (L, "Stage must have an environment");
+		luaL_error (L, "Task must have an environment");
 	int n = lua_tointeger (L, 2);
 	int i;
 	if (n < 0)
@@ -248,14 +248,14 @@ task_putcache(lua_State * L, task_t t)
 void
 clp_buildtask (lua_State * L, task_t t)
 {
-	_DEBUG("Building stage %p\n",t);
+	_DEBUG("Building task %p\n",t);
 	task_getcached(L,t);
 	if(lua_type(L,-1)==LUA_TUSERDATA) 
 		return;
 	lua_pop(L,1);
 	task_t *s = lua_newuserdata (L, sizeof (task_t *));
 	*s = t;
-	get_stagemetatale (L);
+	get_taskmetatale (L);
 	lua_setmetatable (L, -2);
 	task_putcache(L,t);
 	_DEBUG("Created userdata %p\n",t);
@@ -302,12 +302,12 @@ static int
 task_gc (lua_State * L)
 {
 //	task_t s = clp_totask (L, 1);
-//	_DEBUG("Destroying stage %p\n",s);
+//	_DEBUG("Destroying task %p\n",s);
 	return 0;
 }
 
 
-static const struct luaL_Reg StageMetaFunctions[] = {
+static const struct luaL_Reg TaskMetaFunctions[] = {
 	{"__eq", task_eq},
 	{"__gc", task_gc},
 	{"__tostring", task_tostring},
@@ -330,14 +330,14 @@ static const struct luaL_Reg StageMetaFunctions[] = {
 };
 
 static void
-get_stagemetatale (lua_State * L)
+get_taskmetatale (lua_State * L)
 {
 	luaL_getmetatable (L, CLP_TASK_METATABLE);
 	if (lua_isnil (L, -1))
 	  {
 		  lua_pop (L, 1);
 		  luaL_newmetatable (L, CLP_TASK_METATABLE);
-		  LUA_REGISTER (L, StageMetaFunctions);
+		  LUA_REGISTER (L, TaskMetaFunctions);
 		  lua_pushvalue (L, -1);
 		  lua_setfield (L, -2, "__index");
 		  luaL_loadstring (L,
@@ -351,10 +351,10 @@ get_stagemetatale (lua_State * L)
 
 
 static int
-task_isstage (lua_State * L)
+task_istask (lua_State * L)
 {
 	lua_getmetatable (L, 1);
-	get_stagemetatale (L);
+	get_taskmetatale (L);
 	int has = 0;
 #if LUA_VERSION_NUM > 501
 	if (lua_compare (L, -1, -2, LUA_OPEQ))
@@ -410,29 +410,29 @@ clp_newtask (lua_State * L)
 		  (*task_)->env = envcp;
 		  (*task_)->env_len = len; 
 	  }
-	task_t stage = *task_;
+	task_t task = *task_;
    //instance queue initialization
-   stage->instances = 0;
-	MUTEX_INIT(&stage->intances_mutex);
+   task->instances = 0;
+	MUTEX_INIT(&task->intances_mutex);
 	//create input channel
 	lua_pushcfunction(L,clp_channelnew);
 	lua_call(L,0,1);
 	lua_getfield(L,-1,"__id");
 	lua_insert(L,-2);
 	lua_call(L,1,1);
-	stage->input=(channel_t)lua_touserdata(L,-1);
+	task->input=(channel_t)lua_touserdata(L,-1);
 	lua_pop(L,1);
 	lua_pushcfunction(L,clp_channelnew);
 	lua_call(L,0,1);
 	lua_getfield(L,-1,"__id");
 	lua_insert(L,-2);
 	lua_call(L,1,1);
-	stage->output=(channel_t)lua_touserdata(L,-1);
+	task->output=(channel_t)lua_touserdata(L,-1);
 	lua_pop(L,1);
 	//initialize thread pool
-	stage->pool = clp_defaultpool;
+	task->pool = clp_defaultpool;
 	//assign metatable
-	get_stagemetatale (L);
+	get_taskmetatale (L);
 	lua_setmetatable (L, -2);
 	//initialize intances
 	if (idle > 0) {
@@ -442,13 +442,13 @@ clp_newtask (lua_State * L)
 		  lua_call (L, 2, 0);
 	}
 	//initialize parent
-	stage->parent = NULL;
+	task->parent = NULL;
 	lua_pushliteral (L, CLP_INSTANCE_KEY);
 	lua_gettable (L, LUA_REGISTRYINDEX);
 	if (lua_type (L, -1) == LUA_TLIGHTUSERDATA)
 	  {
 		  instance_t i = lua_touserdata (L, -1);
-		  stage->parent = i->stage;
+		  task->parent = i->task;
 	  }
 	lua_pop (L, 1);
 	
@@ -492,7 +492,7 @@ static const struct luaL_Reg LuaExportFunctions[] = {
 	{"new", clp_newtask},
 	{"get", clp_gettask},
 	{"destroy", clp_destroytask},
-	{"istask", task_isstage},
+	{"istask", task_istask},
 	{NULL, NULL}
 };
 
@@ -553,28 +553,29 @@ void clp_initinstance(instance_t i) {
 	                  "return require'coroutine'.wrap(function() while true do s:output():put(h(s:input():get())) end end)"
 	                  );
 	lua_pushcfunction(L,mar_decode);
-	lua_pushlstring(L,i->stage->env,i->stage->env_len);
+	lua_pushlstring(L,i->task->env,i->task->env_len);
 	lua_call(L,1,1);
 	lua_pushvalue(L,-1);
 	lua_setfield(L, LUA_REGISTRYINDEX,CLP_ENV_KEY);
-	clp_pushchannel(L,i->stage->input);
-	clp_pushchannel(L,i->stage->output);
-	clp_buildtask(L,i->stage);
+	clp_pushchannel(L,i->task->input);
+	clp_pushchannel(L,i->task->output);
+	clp_buildtask(L,i->task);
 	lua_call(L,4,1);
 	lua_settable(L, LUA_REGISTRYINDEX);
 	lua_getfield(L, LUA_REGISTRYINDEX,CLP_ENV_KEY);
 	lua_getfield(L,-1,"e");
 	lua_setfield(L,LUA_REGISTRYINDEX,CLP_ERRORFUNCTION_KEY);
 	lua_pop(L,1);
-	i->flags=I_READY;
+	i->state=I_READY;
 }
 
 instance_t clp_newinstance(task_t s) {
    lua_State * L = luaL_newstate();
 	instance_t i=malloc(sizeof(struct instance_s));
 	i->L=L;
-	i->stage=s;
-	i->flags=I_CREATED;
+	i->task=s;
+	i->state=I_CREATED;
+	i->chan=NULL;
 	i->ev=NULL;
 	clp_pushinstance(i);
 	return i;

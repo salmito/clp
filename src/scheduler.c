@@ -2,6 +2,7 @@
 #include "scheduler.h"
 #include "threading.h"
 #include "event.h"
+#include "channel.h"
 #include "marshal.h"
 
 #include <time.h>
@@ -16,24 +17,6 @@ thread_t clp_tothread(lua_State *L, int i) {
 	thread_t * t = luaL_checkudata (L, i, CLP_THREAD_METATABLE);
 	luaL_argcheck (L, *t != NULL, i, "not a Thread");
 	return *t;
-}
-
-static int thread_join (lua_State *L) {
-	thread_t t=clp_tothread(L,1);
-	int timeout=lua_tointeger(L,2);
-	if(timeout>0) {
-		struct timespec to;
-		clock_gettime(CLOCK_REALTIME, &to);
-		to.tv_sec += timeout;
-		#ifdef _WIN32
-	   pthread_join(*t->th,NULL);
-		#else
-		pthread_timedjoin_np(*t->th,NULL,&to);
-		#endif	
-   } else {
-	   pthread_join(*t->th,NULL);
-   }
-   return 0;
 }
 
 static int thread_rawkill (lua_State *L) {
@@ -64,7 +47,6 @@ static int thread_eq(lua_State * L) {
 static const struct luaL_Reg StageMetaFunctions[] = {
 		{"__tostring",thread_tostring},
 		{"__eq",thread_eq},
-		{"join",thread_join},
 		{"__id",thread_ptr},
 		{"state",thread_state},
 		{"rawkill",thread_rawkill},
@@ -85,17 +67,17 @@ static void get_metatable(lua_State * L) {
 }
 
 static void thread_resume_instance(instance_t i) {
-	_DEBUG("Resuming instance: %p %d lua_State (%p)\n",i,i->flags,i->L);
+	_DEBUG("Resuming instance: %p %d lua_State (%p)\n",i,i->state,i->L);
 
 	lua_State * L=i->L;
-	if(i->flags==I_CREATED) {
+	if(i->state==I_CREATED) {
 		clp_initinstance(i);
 	}
 	i->args=0;
 	lua_getfield(L,LUA_REGISTRYINDEX,CLP_ERRORFUNCTION_KEY);
 	lua_getfield(L,LUA_REGISTRYINDEX,TASK_HANDLER_KEY);
 
-	switch(i->flags) {
+	switch(i->state) {
 		case I_CLOSED:
 			lua_pop(L,1);
 			lua_getglobal(L,"error");
@@ -130,19 +112,14 @@ static void thread_resume_instance(instance_t i) {
 				i->args=n;
 			}
 			break;
-		case I_WAITING_IO:
+		case I_RESUME_SUCCESS:
 			lua_pushboolean(L,1);
 			i->args=1;
 			break;
-		case I_TIMEOUT_IO:
+		case I_RESUME_FAIL:
 			lua_pushboolean(L,0);
 			i->args=1;
 		   break;
-		case I_WAITING_WRITE:
-			i->flags=I_READY;
-			lua_pushboolean(L,1);
-			i->args=1;		
-			break;
 		default:
 			lua_pop(L,2);
 			return;
@@ -154,10 +131,24 @@ static void thread_resume_instance(instance_t i) {
       return;
    }
   	lua_pop(L,1);
-//  	printf("instance %s\n",instance_state[i->flags]);
-  	if(i->flags==I_READY) { //instance yield
-  		clp_pushinstance(i);
-  	}
+//  	printf("instance %s\n",instance_state[i->state]);
+  	switch(i->state) {
+  		case I_READY:
+	  		clp_pushinstance(i);
+	  		break;
+  		case I_CHANNEL_READ:
+			clp_lfqueue_try_push(i->chan->read_queue,&i);
+			CHANNEL_UNLOCK(i->chan);
+			i->chan=NULL;
+			break;
+		case I_CHANNEL_WRITE:
+			clp_lfqueue_try_push(i->chan->write_queue,&i);
+			CHANNEL_UNLOCK(i->chan);
+			i->chan=NULL;
+			break;
+		default:
+			break;
+	}
 }
 
 /*thread main loop*/
@@ -178,17 +169,6 @@ static THREAD_RETURN_T THREAD_CALLCONV thread_mainloop(void *t_val) {
   	_DEBUG("Thread %p quitting\n",self);
   	self->pool->size--; //TODO atomic
    return t_val;
-}
-
-int clp_joinpool(lua_State *L,pool_t pool) {
-	thread_t * thread=lua_newuserdata(L,sizeof(thread_t));
-	thread_t t=malloc(sizeof(struct thread_s));
-	*t->th=pthread_self();
-	t->pool=pool;
-	t->state=THREAD_IDLE;
-	*thread=t;
-	(void)thread_mainloop(t);
-	return 1;
 }
 
 int clp_newthread(lua_State *L,pool_t pool) {
@@ -215,7 +195,7 @@ static int thread_from_ptr (lua_State *L) {
 }
 
 void clp_pushinstance(instance_t i) {
-	return clp_lfqueue_push(i->stage->pool->ready, &i);
+	return clp_lfqueue_push(i->task->pool->ready, &i);
 }
 
 static const struct luaL_Reg LuaExportFunctions[] = {
