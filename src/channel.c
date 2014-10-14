@@ -118,6 +118,7 @@ static int channel_ptr(lua_State * L) {
 
 int clp_pushevent(lua_State *L) {
 	channel_t c = clp_tochannel(L,1);
+	_DEBUG("Push: called\n");
    int top=lua_gettop(L);
   	_DEBUG("CHANNEL PUSH EVENT: %p %d\n",c,top);
    lua_pushcfunction(L,mar_encode);
@@ -200,7 +201,7 @@ int clp_pushevent(lua_State *L) {
 static int channel_getevent(lua_State *L) {
 	channel_t c = clp_tochannel(L,1);
 	event_t ev=NULL;
-	_DEBUG("CHANNEL GET EVENT: %p\n",c);
+	_DEBUG("Get: called: %p\n",c);
 	lua_pushliteral(L,CLP_INSTANCE_KEY);
 	lua_gettable(L, LUA_REGISTRYINDEX);
 	instance_t i=NULL;
@@ -217,10 +218,16 @@ static int channel_getevent(lua_State *L) {
    }
 	if(clp_lfqueue_try_pop(c->event_queue,&ev)) {
   	   _DEBUG("get: got from event queue \n");
-		if(clp_lfqueue_try_pop(c->write_queue,&i)) {
+  		CHANNEL_UNLOCK(c);
+		int n=clp_restoreevent(L,ev);
+		clp_destroyevent(ev);
+		return n;
+	}
+	if(clp_lfqueue_try_pop(c->write_queue,&i)) {
 	  	   _DEBUG("get: has writers, escalate its event\n");
 			clp_lfqueue_try_push(c->event_queue,&i->ev);
 	  		CHANNEL_UNLOCK(c);
+	  		ev=i->ev;
 			i->ev=NULL;
 			i->state=I_RESUME_SUCCESS;
 			clp_pushinstance(i);
@@ -228,12 +235,6 @@ static int channel_getevent(lua_State *L) {
 			clp_destroyevent(ev);
 			return n;
 		}
-  		CHANNEL_UNLOCK(c);
-  	   _DEBUG("get: event restored %p\n",ev);
-		int n=clp_restoreevent(L,ev);
-		clp_destroyevent(ev);
-		return n;
-	}
 	if(c->closed) {
 	   CHANNEL_UNLOCK(c);
 	   luaL_error(L,"Channel was closed");
@@ -321,6 +322,7 @@ int clp_channelnew(lua_State *L) {
 	t->sync=sync;
 	clp_lfqueue_setcapacity(t->event_queue,size);
 	clp_lfqueue_setcapacity(t->read_queue,-1);
+	clp_lfqueue_setcapacity(t->write_queue,-1);
 	clp_pushchannel(L,t);
    return 1;
 }
