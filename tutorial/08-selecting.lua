@@ -13,7 +13,7 @@ local multiplex=clp.channel()
 local select=clp.task(function(...)
 	local arg={...}
 	for i=1,#arg do
-		clp.task(pipe,function(e) multiplex:put(nil) return e end)(arg[i],multiplex)
+		clp.task(pipe,function(e) print(e) multiplex:put(nil,'channel was closed') end)(arg[i],multiplex)
 	end
 end)
 
