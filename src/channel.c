@@ -120,7 +120,7 @@ int clp_pushevent(lua_State *L) {
 	channel_t c = clp_tochannel(L,1);
 	_DEBUG("Push: called\n");
    int top=lua_gettop(L);
-  	_DEBUG("CHANNEL PUSH EVENT: %p %d\n",c,top);
+  	printf("CHANNEL PUSH EVENT: %p %d\n",c,top);
    lua_pushcfunction(L,mar_encode);
    lua_newtable(L);
    int i;
@@ -237,7 +237,7 @@ static int channel_getevent(lua_State *L) {
 		}
 	if(c->closed) {
 	   CHANNEL_UNLOCK(c);
-	   luaL_error(L,"Channel was closed");
+	   luaL_error(L,"closed");
 	   return 0;
 	}
 	if(lua_type(L,-1)!=LUA_TLIGHTUSERDATA) {
