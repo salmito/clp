@@ -1,9 +1,6 @@
 local clp=require'clp'
 
 local s1,s2,s3=clp.task(),clp.task(),clp.task()
-print('init',clp.pool:size())
-clp.pool:kill()
-print('init',clp.pool:size())
 clp.pool:add(clp.cpus()-1)
 print('init',clp.pool:size())
 

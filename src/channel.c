@@ -120,7 +120,7 @@ int clp_pushevent(lua_State *L) {
 	channel_t c = clp_tochannel(L,1);
 	_DEBUG("Push: called\n");
    int top=lua_gettop(L);
-  	printf("CHANNEL PUSH EVENT: %p %d\n",c,top);
+  	_DEBUG("CHANNEL PUSH EVENT: %p %d\n",c,top);
    lua_pushcfunction(L,mar_encode);
    lua_newtable(L);
    int i;
