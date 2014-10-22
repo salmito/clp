@@ -39,25 +39,6 @@ task_setinput (lua_State * L)
 
 
 static int
-task_output (lua_State * L)
-{
-	task_t s = clp_totask (L, 1);
-	clp_pushchannel(L,s->output);
-	return 1;
-}
-
-static int
-task_setoutput (lua_State * L)
-{
-	task_t s = clp_totask (L, 1);
-	channel_t c=clp_tochannel(L, 2);
-	s->output=c;
-	lua_pushvalue(L,1);
-	return 1;
-}
-
-
-static int
 get_max_instances (lua_State * L)
 {
 	task_t s = clp_totask (L, 1);
@@ -318,8 +299,6 @@ static const struct luaL_Reg TaskMetaFunctions[] = {
 	{"wrap", task_wrap},
 	{"input", task_input},
 	{"setinput", task_setinput},
-	{"setoutput", task_setoutput},
-	{"output", task_output},
 	{"add", task_instantiate},
 	{"remove", task_destroyinstances},
 	{"parent", task_getparent},
@@ -421,13 +400,6 @@ clp_newtask (lua_State * L)
 	lua_insert(L,-2);
 	lua_call(L,1,1);
 	task->input=(channel_t)lua_touserdata(L,-1);
-	lua_pop(L,1);
-	lua_pushcfunction(L,clp_channelnew);
-	lua_call(L,0,1);
-	lua_getfield(L,-1,"__id");
-	lua_insert(L,-2);
-	lua_call(L,1,1);
-	task->output=(channel_t)lua_touserdata(L,-1);
 	lua_pop(L,1);
 	//initialize thread pool
 	task->pool = clp_defaultpool;
@@ -548,19 +520,18 @@ void clp_initinstance(instance_t i) {
 	lua_pushliteral(L,TASK_HANDLER_KEY);
 	luaL_loadstring(L,"local a={...} "
 							"local h=a[1].f "
-  	                  "local s=a[4] "
-							"a[1].e = a[1].e or function(e) s:input():close() s:output():close() return e end "
-	                  "return require'coroutine'.wrap(function() while true do s:output():put(h(s:input():get())) end end)"
+  	                  "local s=a[2] "
+							"a[1].e = a[1].e or function(e) return e end "
+							"print('input queue',s:input()) "
+	                  "return require'coroutine'.wrap(function() while true do h(s:input():get()) end end)"
 	                  );
 	lua_pushcfunction(L,mar_decode);
 	lua_pushlstring(L,i->task->env,i->task->env_len);
 	lua_call(L,1,1);
 	lua_pushvalue(L,-1);
 	lua_setfield(L, LUA_REGISTRYINDEX,CLP_ENV_KEY);
-	clp_pushchannel(L,i->task->input);
-	clp_pushchannel(L,i->task->output);
 	clp_buildtask(L,i->task);
-	lua_call(L,4,1);
+	lua_call(L,2,1);
 	lua_settable(L, LUA_REGISTRYINDEX);
 	lua_getfield(L, LUA_REGISTRYINDEX,CLP_ENV_KEY);
 	lua_getfield(L,-1,"e");
