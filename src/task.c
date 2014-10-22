@@ -522,7 +522,6 @@ void clp_initinstance(instance_t i) {
 							"local h=a[1].f "
   	                  "local s=a[2] "
 							"a[1].e = a[1].e or function(e) return e end "
-							"print('input queue',s:input()) "
 	                  "return require'coroutine'.wrap(function() while true do h(s:input():get()) end end)"
 	                  );
 	lua_pushcfunction(L,mar_decode);
