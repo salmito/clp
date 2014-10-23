@@ -523,7 +523,6 @@ int mar_encode(lua_State* L)
     lua_pop(L, 1);
 
     lua_pushlstring(L, buf.data, buf.head);
-
     buf_done(L, &buf);
 
     lua_remove(L, SEEN_IDX);

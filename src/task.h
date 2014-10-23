@@ -34,7 +34,6 @@ struct clp_Task {
    MUTEX_T intances_mutex;
 	volatile int instances; /* number of instances */
 	channel_t input; /* input channel */
-	channel_t output; /* output channel */
 	pool_t pool;
 	char * env;
 	size_t env_len;
