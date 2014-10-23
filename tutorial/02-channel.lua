@@ -20,7 +20,7 @@ local clp=require'clp'
 
 local messages=clp.channel()
 
-clp.task(function()
+clp.process(function()
     messages:put('ping')
 end)()
 

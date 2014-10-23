@@ -34,7 +34,7 @@ void tableDump(lua_State *L, int idx, const char* text);
         #endif
 #endif  
 
-#define CLP_TASK_METATABLE "clp-Task *"
+#define CLP_TASK_METATABLE "clp-Process *"
 #define CLP_POOL_METATABLE "clp-Pool *"
 #define CLP_THREAD_METATABLE "clp-Thread *"
 #define CLP_CHANNEL_METATABLE "clp-Channel *"

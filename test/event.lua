@@ -5,7 +5,7 @@ local a=event.encode("Test")
 assert(event.decode(a)=="Test")
 local clp=require'clp'
 
-local sleep=clp.task(function(...)
+local sleep=clp.process(function(...)
 	print("sleeping")
 	for i=1,10 do
 		event.sleep(1)
@@ -27,7 +27,7 @@ local function handler(str,thread)
 	end	
 end
 
-local stage=clp.task(handler,1,1)
+local stage=clp.process(handler,1,1)
 stage('test',thread)
 print('Type something in the next 10s')
 

@@ -1,6 +1,6 @@
 local clp=require'clp'
 
-local s1,s2,s3=clp.task(),clp.task(),clp.task()
+local s1,s2,s3=clp.process(),clp.process(),clp.process()
 clp.pool:add(clp.cpus()-1)
 print('init',clp.pool:size())
 
@@ -43,7 +43,10 @@ print(chan4:get(),chan4:get(),chan4:get())
 
 print(pcall(chan4.get,chan4)) --fail
 
-local s=clp.task(function(msg) print('hello',msg) return msg end):add(4)('john')('paul')('george')('ringo')
-
+local resp=clp.channel()
+local s=clp.process(function(msg) print('hello',msg) resp:put(msg) end, function (e) print('err',resp:close()) return e end):add(4)('john')('paul')('george')('ringo')
 s:input():close()
-while true do print('resp',s:output():get()) end
+local function f()
+  while true do print('resp',resp:get()) end
+end
+print(assert(pcall(f)==false,"should fail") and "Passed")

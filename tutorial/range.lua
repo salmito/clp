@@ -17,7 +17,7 @@ end
 
 if not (...) then
   local c=clp.channel()
-  clp.task(function()
+  clp.process(function()
       for i=1,10 do c:put(i) end
       c:close()
   end)()

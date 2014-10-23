@@ -1,5 +1,5 @@
 local clp=require'clp'
-local s=require'clp.task'
+local s=require'clp.process'
 local e=require'clp.event'
 local sched=require'clp.scheduler'
 
@@ -24,7 +24,7 @@ print("Created task",task1,task1:pool(),task1:env())
 print(assert(task2:pool()==clp.pool,"incorrect pool") and "task2 pool OK "..tostring(clp.pool))
 print("task2 pool size",clp.pool:size())
 
-local task1=clp.task(function(str) 
+local task1=clp.process(function(str) 
 	while true do
 		print(str)
 		e.sleep(0.5)
