@@ -15,7 +15,7 @@ task_t
 clp_totask (lua_State * L, int i)
 {
 	task_t *s = luaL_checkudata (L, i, CLP_TASK_METATABLE);
-	luaL_argcheck (L, s != NULL, i, "Task expected");
+	luaL_argcheck (L, s != NULL, i, "Process expected");
 	return *s;
 }
 
@@ -82,7 +82,7 @@ task_wrap (lua_State * L)
 	int top=lua_gettop(L);
 	task_t s = clp_totask (L, 1);
 	if (s->env != NULL)
-		luaL_error (L, "Task handMUTEX_INITler already set");
+		luaL_error (L, "Process already have a environment");
 
 	luaL_checktype (L, 2, LUA_TFUNCTION);
 	lua_pushcfunction (L, mar_encode);
@@ -119,7 +119,7 @@ static int
 task_tostring (lua_State * L)
 {
 	task_t *s = luaL_checkudata (L, 1, CLP_TASK_METATABLE);
-	lua_pushfstring (L, "Task (%p)", *s);
+	lua_pushfstring (L, "Process (%p)", *s);
 	return 1;
 }
 
@@ -148,9 +148,9 @@ task_instantiate (lua_State * L)
 {
 	task_t s = clp_totask (L, 1);
 	if (s->pool == NULL)
-		luaL_error (L, "Task must be associated to a pool");
+		luaL_error (L, "Process must be associated to a pool");
 	if (s->env == NULL)
-		luaL_error (L, "Task must have an environment");
+		luaL_error (L, "Process must have an environment");
 	int n = lua_tointeger (L, 2);
 	int i;
 	if (n < 0)
@@ -181,7 +181,7 @@ task_ptr (lua_State * L)
 	return 1;
 }
 
-#define CLP_TASK_CACHE "clp-task-cache"
+#define CLP_TASK_CACHE "clp-process-cache"
 
 static void
 task_getcached(lua_State * L, task_t t)
@@ -323,7 +323,7 @@ get_taskmetatale (lua_State * L)
 				   "local t=(...) assert(t:input():put(select(2,...))) return t");
 		  lua_setfield (L, -2, "__call");				   
    	  luaL_loadstring (L,
-				   "local ptr=(...):__id() return function() return require'clp.task'.get(ptr) end");
+				   "local ptr=(...):__id() return function() return require'clp.process'.get(ptr) end");
 		  lua_setfield (L, -2, "__wrap");
 	  }
 }
@@ -455,7 +455,7 @@ clp_gettask (lua_State * L)
 		  return 1;
 	  }
 	lua_pushnil (L);
-	lua_pushliteral (L, "Task not found");
+	lua_pushliteral (L, "Process not found");
 	return 2;
 }
 
@@ -468,12 +468,12 @@ static const struct luaL_Reg LuaExportFunctions[] = {
 };
 
 CLP_EXPORTAPI int
-luaopen_clp_task (lua_State * L)
+luaopen_clp_process (lua_State * L)
 {
 	lua_newtable (L);
 	lua_newtable (L);
 	luaL_loadstring (L,
-			 "return function() return require'clp.task' end");
+			 "return function() return require'clp.process' end");
 	lua_setfield (L, -2, "__persist");
 	lua_setmetatable (L, -2);
 #if LUA_VERSION_NUM < 502
@@ -517,12 +517,12 @@ void clp_initinstance(instance_t i) {
    lua_pop(L,2);
 //	luaL_openlibs(L);
 	lua_pushliteral(L,TASK_HANDLER_KEY);
-	luaL_loadstring(L,"local a={...} "
+	const char buff[]="local a={...} "
 							"local h=a[1].f "
   	                  "local s=a[2] "
 							"a[1].e = a[1].e or function(e) return e end "
-	                  "return require'coroutine'.wrap(function() while true do h(s:input():get()) end end)"
-	                  );
+	                  "return require'coroutine'.wrap(function() while true do h(s:input():get()) end end)\n";
+	luaL_loadbuffer (L,buff, strlen(buff), "Process");
 	lua_pushcfunction(L,mar_decode);
 	lua_pushlstring(L,i->task->env,i->task->env_len);
 	lua_call(L,1,1);

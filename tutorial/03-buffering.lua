@@ -18,7 +18,7 @@ local clp=require'clp'
 
 local unbuffered=clp.channel(0)
 
-clp.task(function() 
+clp.process(function() 
     print('put', 'event1')
     unbuffered:put('event1') --unlock waiter
     unbuffered:get() --wait

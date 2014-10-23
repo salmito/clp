@@ -2,7 +2,7 @@ local clp=require'clp'
 
 
 local function add_timer(time,f)
-	return clp.task(function()
+	return clp.process(function()
 	 	while true do
 			clp.event.sleep(time)
 			f()		

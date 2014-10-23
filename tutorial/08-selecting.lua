@@ -10,10 +10,10 @@ end
 
 local multiplex=clp.channel()
 
-local select=clp.task(function(...)
+local select=clp.process(function(...)
 	local arg={...}
 	for i=1,#arg do
-		clp.task(pipe,function(e) print(e) multiplex:put(nil,'channel was closed') end)(arg[i],multiplex)
+		clp.process(pipe,function(e) print(e) multiplex:put(nil,'channel was closed') end)(arg[i],multiplex)
 	end
 end)
 
@@ -26,7 +26,7 @@ local function f(name,c)
   c:close()
 end
 
-local p1,p2,p3=clp.task(f),clp.task(f),clp.task(f)
+local p1,p2,p3=clp.process(f),clp.process(f),clp.process(f)
 
 p1('task1',c1)
 p2('task2',c2)

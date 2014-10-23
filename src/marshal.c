@@ -1,5 +1,6 @@
 /*
 * Copyright (c) 2010 Richard Hundt
+* Adapted from https://github.com/richardhundt/lua-marshal
 */
 
 #include <stdlib.h>
@@ -179,7 +180,6 @@ static void mar_encode_value(lua_State *L, mar_Buffer *buf, int val, size_t *idx
 
             lua_pushvalue(L, -1);
             lua_getinfo(L, ">nuS", &ar);
-  //          printf("Function name='%s' type='%s' nups=%d\n",ar.namewhat,ar.what,ar.nups);
             if (ar.what[0] != 'L') {
 //	            tag = MAR_PTR;	
 //					if(nowrap)
@@ -441,6 +441,9 @@ static void mar_decode_value
             int ref;
             mar_next_len(ref, int);
             lua_rawgeti(L, SEEN_IDX, ref);
+            if(lua_type(L,-1)==LUA_TFUNCTION) { //has a function
+            	lua_call(L,0,1);
+            }
         }
         else if (tag == MAR_TUSR) {
             mar_next_len(l, uint32_t);
