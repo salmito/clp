@@ -85,7 +85,7 @@ static int channel_setsize(lua_State * L) {
 static int channel_close(lua_State * L) {
 	channel_t c=clp_tochannel(L,1);
    instance_t ins=NULL;
-   printf("Close: lock %p\n",c);
+   _DEBUG("Close: lock %p\n",c);
    CHANNEL_LOCK(c);
   
    if(c->read_wait)
@@ -108,7 +108,7 @@ static int channel_close(lua_State * L) {
 	  	c->read_event=NULL;
 	   SIGNAL_ONE(&c->read_cond);
 	}
-   printf("Close: unlock %p\n",c);
+   _DEBUG("Close: unlock %p\n",c);
   	CHANNEL_UNLOCK(c);
 	lua_pushvalue(L,1);
 	return 1;
@@ -129,7 +129,7 @@ static int channel_ptr(lua_State * L) {
 int clp_pushevent(lua_State *L) {
 	channel_t c = clp_tochannel(L,1);
    int top=lua_gettop(L);
-	printf("Push: called %p top=%d\n",c,top)
+	_DEBUG("Push: called %p top=%d\n",c,top)
    lua_pushcfunction(L,mar_encode);
    lua_newtable(L);
    int i;
@@ -146,14 +146,14 @@ int clp_pushevent(lua_State *L) {
   	lua_pushliteral(L,CLP_INSTANCE_KEY);
 	lua_gettable(L, LUA_REGISTRYINDEX);
 
-  	printf("push: lock %p\n",c);
+  	_DEBUG("push: lock %p\n",c);
 	CHANNEL_LOCK(c);
 	
 	if(c->closed) { //Channel is closed
-	printf("push: unlock %p\n",c);
+	_DEBUG("push: unlock %p\n",c);
   	   CHANNEL_UNLOCK(c);
   	   clp_destroyevent(ev);
-  	   printf("Push: Channel is closed %p\n",c);
+  	   _DEBUG("Push: Channel is closed %p\n",c);
   	   lua_pop(L,1);
    	lua_pushnil(L);
    	lua_pushliteral(L,"Channel is closed");
@@ -161,23 +161,23 @@ int clp_pushevent(lua_State *L) {
    }
    
    if(c->read_wait) {
-  	   printf("Push: main process is getter %p\n",c);
+  	   _DEBUG("Push: main process is getter %p\n",c);
 	   c->read_wait=0;
    	c->read_event=ev;
   	   CHANNEL_UNLOCK(c);
    	MUTEX_LOCK(&c->mutex);
 	   SIGNAL_ONE(&c->read_cond);
 	   MUTEX_UNLOCK(&c->mutex);
-   	printf("push: unlock %p\n",c);
+   	_DEBUG("push: unlock %p\n",c);
   	   lua_pop(L,1);
    	lua_pushboolean(L,1);
       return 1;
    }
    
    if(clp_lfqueue_try_pop(c->read_queue,&ins)) {
-   	printf("push: unlock %p\n",c);  		
+   	_DEBUG("push: unlock %p\n",c);  		
    	CHANNEL_UNLOCK(c);
- 	   printf("Push: got waiting reader for channel %p\n",c);
+ 	   _DEBUG("Push: got waiting reader for channel %p\n",c);
    	lua_settop(ins->L,0);
    	ins->ev=ev;
 		ins->state=I_READY;
@@ -189,9 +189,9 @@ int clp_pushevent(lua_State *L) {
    
    //no one is waiting, push to event queue
    if(clp_lfqueue_try_push(c->event_queue,&ev)) {
-   	printf("push: unlock %p\n",c);
+   	_DEBUG("push: unlock %p\n",c);
 	   CHANNEL_UNLOCK(c);
-  	   printf("Push: Nobody is waiting, used event queue %p\n",c);
+  	   _DEBUG("Push: Nobody is waiting, used event queue %p\n",c);
   	   lua_pop(L,1);
       lua_pushboolean(L,1);
       return 1;
@@ -200,12 +200,12 @@ int clp_pushevent(lua_State *L) {
    
    if(c->sync) { //channel is sync
 	   ins=lua_touserdata(L,-1);
-  	   printf("Push: channel is sync %p\n",c);
+  	   _DEBUG("Push: channel is sync %p\n",c);
 		lua_pop(L,1);
   	   if(ins==NULL) { //i am the main process, wait for get
 			c->write_event=ev;
 			c->write_wait=1;
-			printf("push: unlock %p\n",c);  		
+			_DEBUG("push: unlock %p\n",c);  		
 	  		CHANNEL_UNLOCK(c);
 	  	   MUTEX_LOCK(&c->mutex);
 			SIGNAL_WAIT(&c->write_cond,&c->mutex,-1.0);
@@ -213,7 +213,7 @@ int clp_pushevent(lua_State *L) {
 	   	lua_pushboolean(L,1);
 			return 1;
   	   } //i am a regular task, yield to wait for a read
-  	   printf("Push: waiting %p\n",c);
+  	   _DEBUG("Push: waiting %p\n",c);
 		ins->ev=ev;
 		ins->state=I_CHANNEL_WRITE;
 		ins->chan=c;
@@ -222,7 +222,7 @@ int clp_pushevent(lua_State *L) {
 
 	//channel is asynchronous and the event queue is full
 	CHANNEL_UNLOCK(c);
-   printf("async queue full %p\n",c);
+   _DEBUG("async queue full %p\n",c);
    clp_destroyevent(ev);
    lua_pushnil(L);
    lua_pushliteral(L,"Channel is full");
@@ -232,17 +232,17 @@ int clp_pushevent(lua_State *L) {
 static int channel_getevent(lua_State *L) {
 	channel_t c = clp_tochannel(L,1);
 	event_t ev=NULL;
-	printf("Get: called: %p\n",c);
+	_DEBUG("Get: called: %p\n",c);
 	
 	lua_pushliteral(L,CLP_INSTANCE_KEY);
 	lua_gettable(L, LUA_REGISTRYINDEX);
 	instance_t i=NULL;
 	
-	printf("get: lock %p\n",c);
+	_DEBUG("get: lock %p\n",c);
    CHANNEL_LOCK(c);
 	
    if(c->write_wait) { //get the event from the main process
-	   printf("get: Main process is waiting for write %p\n",c);
+	   _DEBUG("get: Main process is waiting for write %p\n",c);
 		lua_pop(L,1);
 		c->write_wait=0;
 		int n=clp_restoreevent(L,c->write_event);
@@ -252,33 +252,33 @@ static int channel_getevent(lua_State *L) {
      	MUTEX_LOCK(&c->mutex);
 	   SIGNAL_ONE(&c->write_cond);
      	MUTEX_UNLOCK(&c->mutex);
-   	printf("get: unlock %p\n",c);
+   	_DEBUG("get: unlock %p\n",c);
   	   return n;
    }
    
    //Check if has any event
 	if(clp_lfqueue_try_pop(c->event_queue,&ev)) {
-  	   printf("get: got from event queue %p\n",c);
+  	   _DEBUG("get: got from event queue %p\n",c);
 		lua_pop(L,1);
   	   //We just popped an event, push a waiting write for that slot  	   
 		if(clp_lfqueue_try_pop(c->write_queue,&i)) {
-	  	   printf("get: has writers, escalate its event %p\n",c);
+	  	   _DEBUG("get: has writers, escalate its event %p\n",c);
 			if(clp_lfqueue_try_push(c->event_queue,&i->ev)) {
-		   	printf("get: unlock %p\n",c);
+		   	_DEBUG("get: unlock %p\n",c);
 		  		CHANNEL_UNLOCK(c);
 				i->ev=NULL;				
 				i->state=I_RESUME_SUCCESS;
 				clp_pushinstance(i);
 			} else {
 				(void)clp_lfqueue_try_push(c->write_queue,&i);
-		   	printf("get: unlock %p\n",c);
+		   	_DEBUG("get: unlock %p\n",c);
 		  		CHANNEL_UNLOCK(c);
 			}
 			int n=clp_restoreevent(L,ev);
 			clp_destroyevent(ev);
 			return n;
 		}
-   	printf("get: unlock %p\n",c);
+   	_DEBUG("get: unlock %p\n",c);
   		CHANNEL_UNLOCK(c);
 		int n=clp_restoreevent(L,ev);
 		clp_destroyevent(ev);
@@ -288,8 +288,8 @@ static int channel_getevent(lua_State *L) {
 	
 	//Check if there are still any task waiting for writes (in case the channel is unbuffered)
 	if(clp_lfqueue_try_pop(c->write_queue,&i)) {
-	  	printf("get: still has writers, get its event %p\n",c);
-   	printf("get: unlock %p\n",c);
+	  	_DEBUG("get: still has writers, get its event %p\n",c);
+   	_DEBUG("get: unlock %p\n",c);
 		CHANNEL_UNLOCK(c);
 		lua_pop(L,1);
 		ev=i->ev;
@@ -302,8 +302,8 @@ static int channel_getevent(lua_State *L) {
 	}
 	
 	if(c->closed) {
-		printf("get: Channel is closed %p\n",c);
-   	printf("get: unlock %p\n",c);
+		_DEBUG("get: Channel is closed %p\n",c);
+   	_DEBUG("get: unlock %p\n",c);
 	   CHANNEL_UNLOCK(c);
   		lua_pop(L,1);
 	   luaL_error(L,"Channel is closed");
@@ -311,7 +311,7 @@ static int channel_getevent(lua_State *L) {
 	}
 	
 	if(lua_type(L,-1)!=LUA_TLIGHTUSERDATA) {
-	  printf("get: i am the main process, gotta wait :( %p\n",c);
+	  _DEBUG("get: i am the main process, gotta wait :( %p\n",c);
 	  	lua_pop(L,1);
 		c->read_wait=1;
   		CHANNEL_UNLOCK(c);
@@ -319,21 +319,21 @@ static int channel_getevent(lua_State *L) {
 		SIGNAL_WAIT(&c->read_cond,&c->mutex,-1.0);
 		int n=0;
 		if(c->read_event) {
-		  printf("get: main process got event :) %p\n",c);
+		  _DEBUG("get: main process got event :) %p\n",c);
 			n=clp_restoreevent(L,c->read_event);
 			clp_destroyevent(c->read_event);
 			c->read_event=NULL;
 		} else {
 			MUTEX_UNLOCK(&c->mutex);
-	   	printf("get: unlock %p\n",c);
+	   	_DEBUG("get: unlock %p\n",c);
 			luaL_error(L,"Channel is closed");
 			return 0;
 		}
-   	printf("get: unlock %p\n",c);
+   	_DEBUG("get: unlock %p\n",c);
 		MUTEX_UNLOCK(&c->mutex);
 		return n;
 	}
-	printf("get: Yield to wait for write %p\n",c);
+	_DEBUG("get: Yield to wait for write %p\n",c);
 	//Yield to wait for write
 	i=lua_touserdata(L,-1);
 	lua_pop(L,1);
