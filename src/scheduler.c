@@ -81,7 +81,7 @@ static void thread_resume_instance(instance_t i) {
 		case I_CLOSED:
 			lua_pop(L,1);
 			lua_getglobal(L,"error");
-			lua_pushliteral(L,"Channel was closed");
+			lua_pushliteral(L,"closed");
 			i->args=1;
 			break;
 		case I_READY:
@@ -126,23 +126,27 @@ static void thread_resume_instance(instance_t i) {
 	}
 	if(lua_pcall(L,i->args,0, -(i->args+2))) {
      	const char * err=lua_tostring(L,-1);
-     	fprintf(stderr,"Error resuming instance: %d: %s\n",-(i->args+2),err);
-      clp_destroyinstance(i);
+	if(err!=NULL)  {
+     		fprintf(stderr,"Task error: %s\n",err);
+      	}
+	clp_destroyinstance(i);
       return;
    }
   	lua_pop(L,1);
 //  	printf("instance %s\n",instance_state[i->state]);
   	switch(i->state) {
   		case I_READY:
-	  		clp_pushinstance(i);
+			_DEBUG("Thread Yielded\n");
 	  		break;
   		case I_CHANNEL_READ:
 			clp_lfqueue_try_push(i->chan->read_queue,&i);
+	   	_DEBUG("get: unlock %p\n",i->chan);
 			CHANNEL_UNLOCK(i->chan);
 			i->chan=NULL;
 			break;
 		case I_CHANNEL_WRITE:
 			clp_lfqueue_try_push(i->chan->write_queue,&i);
+	   	_DEBUG("push: unlock %p\n",i->chan);
 			CHANNEL_UNLOCK(i->chan);
 			i->chan=NULL;
 			break;

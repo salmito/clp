@@ -16,9 +16,12 @@ struct channel_s {
 	LFqueue_t read_queue;
 	LFqueue_t write_queue;
 	MUTEX_T mutex;
-	SIGNAL_T cond;
-	volatile int waiting;
-	event_t event;
+	SIGNAL_T read_cond;
+	SIGNAL_T write_cond;
+	volatile int read_wait;
+	volatile int write_wait;
+	volatile event_t read_event;
+	volatile event_t write_event;
 	volatile int lock;
 	volatile int closed;
 	int sync;
