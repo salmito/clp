@@ -49,4 +49,4 @@ clean:
 	rm -f *.o
 
 ultraclean: clean
-	rm -f $(MODULE) `find -iname "*~"`
+	rm -f $(MODULE) rm -f *.dll *.so `find -iname "*~"`
