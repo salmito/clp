@@ -380,14 +380,13 @@ clp_newtask (lua_State * L)
 		  const char *env = NULL;
 		  size_t len = 0;
 		  env = lua_tolstring (L, -1, &len);
-		  lua_pop (L, 1);
 		  task_ = lua_newuserdata (L, sizeof (task_t *));
-		  (*task_) = calloc (1, sizeof (struct clp_Task));
-		  char *envcp = malloc (len + 1);
-		  envcp[len] = '\0';
-		  memcpy (envcp, env, len + 1);
+		  (*task_) = calloc(1, sizeof (struct clp_Task));
+		  char *envcp = malloc ((sizeof(char))*len);
+		  memcpy (envcp, env, len);
 		  (*task_)->env = envcp;
 		  (*task_)->env_len = len; 
+  		  lua_remove (L, -2);
 	  }
 	task_t task = *task_;
    //instance queue initialization

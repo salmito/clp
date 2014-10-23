@@ -102,7 +102,6 @@ static int channel_close(lua_State * L) {
    c->closed=1;
 	if(c->read_wait) {
 	  	c->read_event=NULL;
-
 	   SIGNAL_ONE(&c->read_cond);
 	}
 	if(c->read_wait) {

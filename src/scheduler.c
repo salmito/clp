@@ -136,7 +136,7 @@ static void thread_resume_instance(instance_t i) {
 //  	printf("instance %s\n",instance_state[i->state]);
   	switch(i->state) {
   		case I_READY:
-	  		clp_pushinstance(i);
+			_DEBUG("Thread Yielded\n");
 	  		break;
   		case I_CHANNEL_READ:
 			clp_lfqueue_try_push(i->chan->read_queue,&i);
