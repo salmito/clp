@@ -1,11 +1,11 @@
 --[[
-  A task is a lightweight thread of execution with independent state.
+  A process is a lightweight thread of execution with its own independent state.
   
-  To create a task, use t=csp.task(f), where f is the function of the task and t will point to the new task object.
+  To create a process, use t=csp.process(f), where f is the function of the task and t will point to the new process object.
   
-  To invoke a task, call the task object. This task will execute concurrently with the calling one.
+  To invoke a process, call the process object. This process will execute concurrently with the calling one.
   
-  You can also start a task for an anonymous function.
+  You can also start a process for an anonymous function.
 --]]
 
 local clp=require'clp'
