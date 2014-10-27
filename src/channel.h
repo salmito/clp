@@ -1,15 +1,15 @@
 #ifndef _CHANNEL_H_
 #define _CHANNEL_H_
 
+typedef struct channel_s  * channel_t;
+
 #include "clp.h"
 #include "lf_queue.h"
 #include "threading.h"
+#include "event.h"
 
-typedef struct channel_s  * channel_t;
 
 #define CLP_CHANNEL_CACHE "clp-channel-cache"
-
-#include "event.h"
 
 struct channel_s {
 	LFqueue_t event_queue;

@@ -124,7 +124,7 @@ static void thread_resume_instance(instance_t i) {
 			lua_pop(L,2);
 			return;
 	}
-	if(lua_pcall(L,i->args,0, -(i->args+2))) {
+	if(lua_pcall(L,i->args,LUA_MULTRET, -(i->args+2))) {
 		const char * err=lua_tostring(L,-1);
 		if(err!=NULL)  {
 			fprintf(stderr,"Process error: %s\n",err);
@@ -132,8 +132,8 @@ static void thread_resume_instance(instance_t i) {
 		clp_destroyinstance(i);
 		return;
 	}
-	lua_pop(L,1);
 	//  	printf("instance %s\n",instance_state[i->state]);
+	lua_remove(L,1);
 	switch(i->state) {
 		case I_READY:
 			_DEBUG("Thread Yielded\n");
@@ -150,7 +150,11 @@ static void thread_resume_instance(instance_t i) {
 			CHANNEL_UNLOCK(i->chan);
 			i->chan=NULL;
 			break;
+		case I_SLEEP:
+			clp_sleepevent(i);
+			break;
 		default:
+			lua_pop(L,1);
 			break;
 	}
 }

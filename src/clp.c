@@ -10,7 +10,6 @@
 
 pool_t clp_defaultpool=NULL;
 
-#ifdef DEBUG
 //can be found here  http://www.lua.org/pil/24.2.3.html
 void stackDump (lua_State *L, const char *text) {
 	int i;
@@ -45,6 +44,7 @@ void stackDump (lua_State *L, const char *text) {
 	printf("\n");  /* end the listing */
 	printf("--------End Dump------------\n");
 }
+#ifdef DEBUG
 void tableDump(lua_State *L, int idx, const char* text)
 {
 	lua_pushvalue(L, idx);		// copy target table
