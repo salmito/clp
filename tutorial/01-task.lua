@@ -18,10 +18,10 @@ end
 
 f("direct")
 
-local t=clp.task(f)
+local t=clp.process(f)
 t("task")
 
-clp.task(function (...) 
+clp.process(function (...) 
     f(...)
 end)("anonymous")
 

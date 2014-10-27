@@ -30,7 +30,7 @@ startup:start()
 
 local finish=clp.channel()
 
-local s2=clp.task(function()
+local s2=clp.process(function()
 	i=(i or 0) +1
 	if i==n then
 		print('finish')
@@ -52,7 +52,7 @@ local str='\t'..n..'\t'..it..'\t'
 
 
 --local out=clp.channel()
-local s1=clp.task(f,n)
+local s1=clp.process(f,n)
 
 for i=1,n do
 	s1()

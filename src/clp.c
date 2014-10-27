@@ -138,7 +138,7 @@ static void clp_require(lua_State *L, const char *lib, lua_CFunction func) {
 
 CLP_EXPORTAPI int luaopen_clp_event(lua_State *L);
 CLP_EXPORTAPI int luaopen_clp_scheduler(lua_State *L);
-CLP_EXPORTAPI int luaopen_clp_task(lua_State *L);
+CLP_EXPORTAPI int luaopen_clp_process(lua_State *L);
 CLP_EXPORTAPI int luaopen_clp_pool(lua_State *L);
 CLP_EXPORTAPI int luaopen_clp_channel(lua_State *L);
 
@@ -183,9 +183,9 @@ CLP_EXPORTAPI int luaopen_clp(lua_State *L) {
 	lua_getfield(L,-1,"new");
 	lua_setfield(L,-3,"channel");
 	lua_pop(L,1);
-	clp_require(L,"clp.task",luaopen_clp_task);
+	clp_require(L,"clp.process",luaopen_clp_process);
 	lua_getfield(L,-1,"new");
-	lua_setfield(L,-3,"task");
+	lua_setfield(L,-3,"process");
 	lua_pop(L,1);
 	lua_newtable(L);
 	luaL_loadstring(L,"return function() return require'clp' end");

@@ -127,7 +127,7 @@ static void thread_resume_instance(instance_t i) {
 	if(lua_pcall(L,i->args,0, -(i->args+2))) {
      	const char * err=lua_tostring(L,-1);
 	if(err!=NULL)  {
-     		fprintf(stderr,"Task error: %s\n",err);
+     		fprintf(stderr,"Process error: %s\n",err);
       	}
 	clp_destroyinstance(i);
       return;
