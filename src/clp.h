@@ -1,12 +1,10 @@
-/*Adapted from https://github.com/Tieske/Lua_library_template/*/
-
 /*
-** ===============================================================
-** Leda is a parallel and concurrent framework for Lua.
-** Copyright 2014: Tiago Salmito
-** License MIT
-** ===============================================================
-*/
+ ** ===============================================================
+ ** CLP is a lightweight parallel and concurrent framework for Lua.
+ ** Copyright 2014: Tiago Salmito
+ ** License MIT
+ ** ===============================================================
+ */
 
 #ifndef _CLP_H
 #define _CLP_H
@@ -27,11 +25,11 @@ void tableDump(lua_State *L, int idx, const char* text);
 #endif
 
 #ifndef CLP_EXPORTAPI
-        #ifdef _WIN32
-                #define CLP_EXPORTAPI __declspec(dllexport)
-        #else
-                #define CLP_EXPORTAPI extern
-        #endif
+#ifdef _WIN32
+#define CLP_EXPORTAPI __declspec(dllexport)
+#else
+#define CLP_EXPORTAPI extern
+#endif
 #endif  
 
 #define CLP_TASK_METATABLE "clp-Process *"
@@ -39,9 +37,9 @@ void tableDump(lua_State *L, int idx, const char* text);
 #define CLP_THREAD_METATABLE "clp-Thread *"
 #define CLP_CHANNEL_METATABLE "clp-Channel *"
 #if LUA_VERSION_NUM < 502
-	#define LUA_REGISTER(L,f) luaL_register(L, NULL, f)
+#define LUA_REGISTER(L,f) luaL_register(L, NULL, f)
 #else
-	#define LUA_REGISTER(L,f) luaL_setfuncs(L, f, 0)
+#define LUA_REGISTER(L,f) luaL_setfuncs(L, f, 0)
 #endif 
 
 #endif

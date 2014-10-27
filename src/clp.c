@@ -8,58 +8,59 @@
 #include "pool.h"
 #include "threading.h"
 
+pool_t clp_defaultpool=NULL;
 
+#ifdef DEBUG
 //can be found here  http://www.lua.org/pil/24.2.3.html
 void stackDump (lua_State *L, const char *text) {
-      int i;
-      int top = lua_gettop(L);
-	  if (text == NULL)
+	int i;
+	int top = lua_gettop(L);
+	if (text == NULL)
 		printf("--------Start Dump------------\n");
-	  else
-	    printf("--------Start %s------------\n", text);
-      for (i = 1; i <= top; i++) {  /* repeat for each level */
-        int t = lua_type(L, i);
-        switch (t) {
-    
-          case LUA_TSTRING:  /* strings */
-            printf("`%s'", lua_tostring(L, i));
-            break;
-    
-          case LUA_TBOOLEAN:  /* booleans */
-            printf(lua_toboolean(L, i) ? "true" : "false");
-            break;
-    
-          case LUA_TNUMBER:  /* numbers */
-            printf("%g", lua_tonumber(L, i));
-            break;
-    
-          default:  /* other values */
-            printf("%s", lua_typename(L, t));
-            break;
-    
-        }
-        printf("  ");  /* put a separator */
-      }
-      printf("\n");  /* end the listing */
-	  printf("--------End Dump------------\n");
-    }
-#ifdef DEBUG
+	else
+		printf("--------Start %s------------\n", text);
+	for (i = 1; i <= top; i++) {  /* repeat for each level */
+		int t = lua_type(L, i);
+		switch (t) {
+
+			case LUA_TSTRING:  /* strings */
+				printf("`%s'", lua_tostring(L, i));
+				break;
+
+			case LUA_TBOOLEAN:  /* booleans */
+				printf(lua_toboolean(L, i) ? "true" : "false");
+				break;
+
+			case LUA_TNUMBER:  /* numbers */
+				printf("%g", lua_tonumber(L, i));
+				break;
+
+			default:  /* other values */
+				printf("%s", lua_typename(L, t));
+				break;
+
+		}
+		printf("  ");  /* put a separator */
+	}
+	printf("\n");  /* end the listing */
+	printf("--------End Dump------------\n");
+}
 void tableDump(lua_State *L, int idx, const char* text)
 {
 	lua_pushvalue(L, idx);		// copy target table
 	lua_pushnil(L);
-	  if (text == NULL)
+	if (text == NULL)
 		printf("--------Table Dump------------\n");
-	  else
-	    printf("--------Table dump: %s------------\n", text);
+	else
+		printf("--------Table dump: %s------------\n", text);
 	while (lua_next(L,-2) != 0) {
 		printf("%s - %s\n",
-			lua_typename(L, lua_type(L, -2)),
-			lua_typename(L, lua_type(L, -1)));
+				lua_typename(L, lua_type(L, -2)),
+				lua_typename(L, lua_type(L, -1)));
 		lua_pop(L, 1);
 	}
 	lua_pop(L, 1);	// remove table copy
-    printf("--------End Table dump------------\n");
+	printf("--------End Table dump------------\n");
 }
 #endif
 
@@ -69,8 +70,8 @@ static int clp_version(lua_State * L) {
 }
 
 static int clp_gettime(lua_State * L) {
-   lua_pushnumber(L,now_secs());
-   return 1;
+	lua_pushnumber(L,now_secs());
+	return 1;
 }
 
 
@@ -86,44 +87,44 @@ static int clp_getself(lua_State *L) {
 }
 
 static int get_cpus() {
-   #ifdef _WIN32
-      #ifndef _SC_NPROCESSORS_ONLN
-         SYSTEM_INFO info;
-         GetSystemInfo(&info);
-         #define sysconf(a) info.dwNumberOfProcessors
-         #define _SC_NPROCESSORS_ONLN
-      #endif
-   #endif
-   #ifdef _SC_NPROCESSORS_ONLN
-	   long nprocs = -1;
-      nprocs = sysconf(_SC_NPROCESSORS_ONLN);
-      if (nprocs >= 1) 
-      	return nprocs;
-   #endif
-   return 0;
+#ifdef _WIN32
+#ifndef _SC_NPROCESSORS_ONLN
+	SYSTEM_INFO info;
+	GetSystemInfo(&info);
+#define sysconf(a) info.dwNumberOfProcessors
+#define _SC_NPROCESSORS_ONLN
+#endif
+#endif
+#ifdef _SC_NPROCESSORS_ONLN
+	long nprocs = -1;
+	nprocs = sysconf(_SC_NPROCESSORS_ONLN);
+	if (nprocs >= 1) 
+		return nprocs;
+#endif
+	return 0;
 }
 
 static int clp_setmetatable(lua_State *L) {
-   lua_pushvalue(L,2);
-   lua_setmetatable(L,1);
-   lua_pushvalue(L,1);
-   return 1;
+	lua_pushvalue(L,2);
+	lua_setmetatable(L,1);
+	lua_pushvalue(L,1);
+	return 1;
 }
 
 static int clp_getmetatable(lua_State *L) {
-   if(lua_type(L,1)==LUA_TSTRING) {
-      const char *tname=lua_tostring(L,1);
-      luaL_getmetatable(L,tname);
-   } else {
-      lua_getmetatable (L,1);
-   }
-   return 1;
+	if(lua_type(L,1)==LUA_TSTRING) {
+		const char *tname=lua_tostring(L,1);
+		luaL_getmetatable(L,tname);
+	} else {
+		lua_getmetatable (L,1);
+	}
+	return 1;
 }
 
 
 static int clp_cpus(lua_State *L) {
-   lua_pushnumber(L,get_cpus());
-   return 1;
+	lua_pushnumber(L,get_cpus());
+	return 1;
 }
 
 static void clp_require(lua_State *L, const char *lib, lua_CFunction func) {
@@ -132,7 +133,7 @@ static void clp_require(lua_State *L, const char *lib, lua_CFunction func) {
 	lua_pushstring(L, lib);
 	lua_call(L,1,1);
 #else
- 	luaL_requiref(L, lib, func, 0); 
+	luaL_requiref(L, lib, func, 0); 
 #endif
 }
 
@@ -150,9 +151,8 @@ static const struct luaL_Reg LuaExportFunctions[] = {
 	{"setmetatable",clp_setmetatable},
 	{"self",clp_getself},
 	{NULL,NULL}
-	};
+};
 
-pool_t clp_defaultpool=NULL;
 
 CLP_EXPORTAPI int luaopen_clp(lua_State *L) {
 	lua_newtable(L);
@@ -198,5 +198,4 @@ CLP_EXPORTAPI int luaopen_clp(lua_State *L) {
 #endif
 	return 1;
 };
-
 
