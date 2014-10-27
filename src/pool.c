@@ -17,13 +17,13 @@ void clp_buildpool(lua_State * L,pool_t t) {
 	pool_t *s=lua_newuserdata(L,sizeof(pool_t *));
 	*s=t;
 	get_metatable(L);
-   lua_setmetatable(L,-2);
+	lua_setmetatable(L,-2);
 }
 
 static int pool_tostring (lua_State *L) {
-  pool_t * s = luaL_checkudata (L, 1, CLP_POOL_METATABLE);
-  lua_pushfstring (L, "Pool (%p)", *s);
-  return 1;
+	pool_t * s = luaL_checkudata (L, 1, CLP_POOL_METATABLE);
+	lua_pushfstring (L, "Pool (%p)", *s);
+	return 1;
 }
 
 static int pool_ptr(lua_State * L) {
@@ -71,11 +71,11 @@ static int pool_eq(lua_State * L) {
 
 static void get_metatable(lua_State * L) {
 	luaL_getmetatable(L,CLP_POOL_METATABLE);
-   if(lua_isnil(L,-1)) {
-   	lua_pop(L,1);
-  		luaL_newmetatable(L,CLP_POOL_METATABLE);
-  		lua_pushvalue(L,-1);
-  		lua_setfield(L,-2,"__index");
+	if(lua_isnil(L,-1)) {
+		lua_pop(L,1);
+		luaL_newmetatable(L,CLP_POOL_METATABLE);
+		lua_pushvalue(L,-1);
+		lua_setfield(L,-2,"__index");
 		lua_pushcfunction (L, pool_tostring);
 		lua_setfield (L, -2,"__tostring");
 		luaL_loadstring(L,"local ptr=(...):ptr() return function() return require'clp.pool'.get(ptr) end");
@@ -83,14 +83,14 @@ static void get_metatable(lua_State * L) {
 		lua_pushcfunction (L, pool_eq);
 		lua_setfield (L, -2,"__eq");
 		lua_pushcfunction(L,pool_ptr);
-  		lua_setfield(L,-2,"ptr");
+		lua_setfield(L,-2,"ptr");
 		lua_pushcfunction(L,pool_size);
-  		lua_setfield(L,-2,"size");
-  		lua_pushcfunction(L,pool_addthread);
-  		lua_setfield(L,-2,"add");
- 		lua_pushcfunction(L,pool_killthread);
-  		lua_setfield(L,-2,"kill");
-  	}
+		lua_setfield(L,-2,"size");
+		lua_pushcfunction(L,pool_addthread);
+		lua_setfield(L,-2,"add");
+		lua_pushcfunction(L,pool_killthread);
+		lua_setfield(L,-2,"kill");
+	}
 }
 
 static int pool_new(lua_State *L) {
@@ -125,9 +125,9 @@ static int pool_get(lua_State * L) {
 
 
 static const struct luaL_Reg LuaExportFunctions[] = {
-		{"new",pool_new},
-		{"get",pool_get},
-		{NULL,NULL}
+	{"new",pool_new},
+	{"get",pool_get},
+	{NULL,NULL}
 };
 
 CLP_EXPORTAPI int luaopen_clp_pool(lua_State *L) {

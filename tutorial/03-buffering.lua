@@ -11,7 +11,7 @@ channel that blocks only after the 10th put call without matching receivers.
 Unbuffered channels are created by the c=clp.channel(0) call.
 Unbuffered channels will block in put until there is a corresponding
 get call ready to receive the sent value, acting as a synchronization
-barrier between two tasks.
+barrier between two processes.
 
 --]]
 local clp=require'clp'
