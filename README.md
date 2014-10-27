@@ -65,7 +65,7 @@ Or e-mail me: Tiago Salmito - tiago _[at]_ salmito _[dot]_ com
 ## Copyright notice
 CLP is published under the same MIT license as Lua 5.1.
 
-Copyright (C) 2012 Tiago Salmito
+Copyright (C) 2014 Tiago Salmito
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
