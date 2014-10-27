@@ -99,7 +99,6 @@ void clp_sleepevent(instance_t i) {
 
 
 static THREAD_RETURN_T THREAD_CALLCONV event_main(void *t_val) {
-	loop = event_base_new();
 	if(!loop) return NULL;
 	struct event *listener_event = event_new(loop, -1, EV_READ|EV_PERSIST, dummy_event, NULL);
 	event_add(listener_event, NULL);
@@ -137,6 +136,7 @@ CLP_EXPORTAPI	int luaopen_clp_event(lua_State *L) {
 #ifndef _WIN32
 		evthread_use_pthreads();
 #endif
+		loop = event_base_new();
 		THREAD_CREATE(event_thread, &event_main, NULL, 0);
 	}
 	lua_newtable(L);
