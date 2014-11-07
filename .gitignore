@@ -1,24 +1,18 @@
 # Object files
 *.o
 *.ko
-<<<<<<< HEAD
-=======
 *.obj
 *.elf
 
 # Precompiled Headers
 *.gch
 *.pch
->>>>>>> 53e3a2aadc58070995cd3b6ad0ae90cb6940973d
 
 # Libraries
 *.lib
 *.a
-<<<<<<< HEAD
-=======
 *.la
 *.lo
->>>>>>> 53e3a2aadc58070995cd3b6ad0ae90cb6940973d
 
 # Shared objects (inc. Windows DLLs)
 *.dll
@@ -30,12 +24,11 @@
 *.exe
 *.out
 *.app
-<<<<<<< HEAD
 
 #Backups
 *~
-=======
 *.i*86
 *.x86_64
 *.hex
->>>>>>> 53e3a2aadc58070995cd3b6ad0ae90cb6940973d
+*.swp
+*.swo

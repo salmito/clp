@@ -1,9 +1,68 @@
+/// 
+// Channel submodule.
+// 
+// This module adds the Channel type to the current Lua state.
+// Channels connect concurrent process. 
+// 
+// You can send values into channels from one @{process} and receive 
+// those values into another @{process}.
+//  
+// Send values to a channel using the @{channel:put} method.
+//
+// Receive values from a channel invoking the @{channel:get} method. 
+// 
+// Channels can be buffered or unbuffered.
+// By default channels are buffered and unbounded, meaning that @{channel:put}
+// returns immediatelly and never become full (be carefull with memory
+// exaustion), even when there is no corresponding  @{channel:get} call
+// waiting to receive the sent values.
+//
+// Buffered channels may accept a limited number of values without a
+// corresponding receiver for those values. This number may be specified 
+// during the channel creation: for example, `channel.new(10)` will create a
+// channel that blocks only after the 10th put call without matching receivers.
+//
+// Unbuffered channels are created by the @{channel.new} call.
+// Unbuffered channels will block the process in  @{channel:put} until
+// there is a corresponding @{channel:get} call ready to receive the sent 
+// values and vice versa. Unbuffered channels act as a synchronization
+// barrier between two processes.
+
+//
+// @module channel
+// @author Tiago Salmito
+// @license MIT
+// @copyright Tiago Salmito - 2014
+
 #include "channel.h"
 #include "task.h"
 #include "event.h"
 #include "scheduler.h"
 #include "marshal.h"
 #include <stdlib.h>
+
+///
+// Creates a new channel
+//
+// @int[opt=-1] size the maximum size of the buffer. 
+// If the value is lower than  `0` then the channel will be unbounded.
+// If the value is `0` then the channel will be unbuffered. 
+// If the value is greater than  `0` then the channel buffer will increase
+// up to the maximum `size`.
+//
+// @bool[opt=false] async if set to `true` then the new channel will be
+// asynchronous (i.e. fails when full/empty). if `false` then it will be 
+// synchronous (i.e. blocks when full/empty).
+// @treturn channel the new channel
+// @function new
+
+///
+// Channel type.
+//
+// Any function in this section belongs to `channel` type methods.
+//
+// @type channel
+
 
 channel_t clp_tochannel(lua_State *L, int i) {
 	channel_t * t = luaL_checkudata (L, i, CLP_CHANNEL_METATABLE);
@@ -60,6 +119,17 @@ static int channel_eq(lua_State * L) {
 	return 1;
 }
 
+///
+// Get the current and maximum size of the buffer.
+// It also returns the current number of pending readers 
+// and writers wating on the channel.
+//
+// @treturn int the current buffer size
+// @treturn int the maximum buffer size
+// @treturn int the current number of pending readers
+// @treturn int the current number of pending writers
+//
+// @function size
 static int channel_getsize(lua_State * L) {
 	channel_t s=clp_tochannel(L,1);
 	lua_pushnumber(L,clp_lfqueue_size(s->event_queue));
@@ -69,17 +139,35 @@ static int channel_getsize(lua_State * L) {
 	return 4;
 }
 
+///
+// Set the maximum size of the buffer.
+//
+// @int size the new maximum size
+//
+// @function setsize
 static int channel_setsize(lua_State * L) {
 	channel_t s=clp_tochannel(L,1);
 	luaL_checktype (L, 2, LUA_TNUMBER);
 	int capacity=lua_tointeger(L,2);
-	int waitsize=luaL_optint(L,3,-1);
 	clp_lfqueue_setcapacity(s->event_queue,capacity);
-	clp_lfqueue_setcapacity(s->read_queue,waitsize);
-	lua_pushvalue(L,1);
-	return 1;
+	return 0;
 }
 
+///
+// Close a channel. 
+//
+// When closed, any pending readers and writers are awaken and an error
+// is thrown in their pendig operation.
+// 
+// Current stored values remain on the buffer until the channel is
+// collected or are read by other processes.
+// 
+// Any subsequent @{channel:get} operation with an empty buffer fails
+// with an error.
+//
+// Any subsequent @{channel:put} operation fails with `nil, 'closed'`.
+//
+// @function close
 static int channel_close(lua_State * L) {
 	channel_t c=clp_tochannel(L,1);
 	instance_t ins=NULL;
@@ -124,6 +212,24 @@ static int channel_ptr(lua_State * L) {
 	return 1;
 }
 
+///
+// Put values into the channel.
+//
+// This operation will block the current process if the channel is
+// synchronous and it is full until there is a corresponding get.
+//
+// @param ... The values to send
+// @treturn[1] bool true if the value was sent
+// @treturn[2] nil
+// @treturn[2] string `"Channel is closed"` if the channel is closed
+// @treturn[3] nil
+// @treturn[3] string `"Channel is full"` if the channel is asynchronous and
+// it's full
+//
+// @raise `"Channel is closed"` if the channel was closed while
+// waiting for a get.
+//
+// @function put
 int clp_pushevent(lua_State *L) {
 	channel_t c = clp_tochannel(L,1);
 	int top=lua_gettop(L);
@@ -227,6 +333,21 @@ int clp_pushevent(lua_State *L) {
 	return 2;
 }
 
+///
+// Get values from the channel.
+//
+// This operation will block the current process if the channel is
+// synchronous and it is empty until there is a corresponding put.
+//
+// @return[1] `...` The next values in the buffer
+// @treturn[2] nil
+// @treturn[2] string `"Channel is empty"` if the channel is asynchronous and
+// it's empty
+//
+// @raise `"Channel is closed"` if the channel is closed or was closed while
+// waiting for a put.
+//
+// @function get
 static int channel_getevent(lua_State *L) {
 	channel_t c = clp_tochannel(L,1);
 	event_t ev=NULL;
@@ -283,7 +404,6 @@ static int channel_getevent(lua_State *L) {
 		return n;
 	}
 
-
 	//Check if there are still any task waiting for writes (in case the channel is unbuffered)
 	if(clp_lfqueue_try_pop(c->write_queue,&i)) {
 		_DEBUG("get: still has writers, get its event %p\n",c);
@@ -306,6 +426,12 @@ static int channel_getevent(lua_State *L) {
 		lua_pop(L,1);
 		luaL_error(L,"Channel is closed");
 		return 0;
+	}
+
+	if(!c->sync) { 
+		lua_pushnil(L);
+		lua_pushliteral(L,"Channel is empty");
+		return 2;
 	}
 
 	if(lua_type(L,-1)!=LUA_TLIGHTUSERDATA) {

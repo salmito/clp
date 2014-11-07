@@ -175,7 +175,9 @@ static THREAD_RETURN_T THREAD_CALLCONV thread_mainloop(void *t_val) {
 	}
 	self->state=THREAD_DESTROYED;
 	_DEBUG("Thread %p quitting\n",self);
-	self->pool->size--; //TODO atomic
+	CHANNEL_LOCK(self->pool);
+	self->pool->size--;
+	CHANNEL_UNLOCK(self->pool);
 	return t_val;
 }
 

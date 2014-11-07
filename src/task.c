@@ -1,3 +1,15 @@
+/// 
+// Process submodule.
+//
+// A process is a lightweight thread of execution with its own
+// independent state.
+//
+// @module process
+// @author Tiago Salmito
+// @license MIT
+// @copyright Tiago Salmito - 2014
+
+
 #include "task.h"
 #include "marshal.h"
 #include "scheduler.h"
@@ -26,12 +38,58 @@ task_t clp_totask (lua_State * L, int i) {
 	return *s;
 }
 
+///
+// Creates a new process.
+//
+// If called without parameters, creates a new empty process 
+// without environment. It can be set later with 
+// the @{process:wrap} function.
+//
+// If `f` is a function then it will be used as the new process environment.
+// Any upvalues will be copied to the state of the new process.
+//
+// If `e` is a function then it will be used as the error 
+// function of the new process. It will be called whenever the process 
+// raise a error. The process is destroyed after it returns.
+//
+// All spawned processes share the same input channel.
+//
+// @tparam[opt] function f environment of the process.
+// @tparam[optchain] function e error function of the process.
+// @tparam[opt=1] number n number of processes to create.
+// @return the new process
+// @function new
+
+///
+// Tests whether the userdata is a process
+// @tparam process p value to be tested
+// @return true if it has the process type
+//
+// @function isprocess
+
+
+///
+// Our class. Any function or table in this section belongs to `process`
+// @type process
+
+///
+// get the input channel of the process.
+//
+// @return the input channel
+//
+// @function input
 static int task_input (lua_State * L) {
 	task_t s = clp_totask (L, 1);
 	clp_pushchannel(L,s->input);
 	return 1;
 }
 
+///
+// Changes the input channel of the process.
+//
+// @tparam channel c the new input channel
+//
+// @function setinput
 static int task_setinput (lua_State * L) {
 	task_t s = clp_totask (L, 1);
 	channel_t c=clp_tochannel(L, 2);
@@ -40,13 +98,24 @@ static int task_setinput (lua_State * L) {
 	return 1;
 }
 
-
+///
+// Get the number of spawned processes.
+//
+// @return the number of process instances
+//
+// @function size
 static int get_max_instances (lua_State * L) {
 	task_t s = clp_totask (L, 1);
 	lua_pushnumber (L, s->instances);
 	return 1;
 }
 
+///
+// Get the environment function of a process
+//
+// @treturn function the environment function
+//
+// @function env
 static int task_getenv (lua_State * L) {
 	lua_getfield(L, LUA_REGISTRYINDEX, CLP_HANDLER_KEY);
 	if(lua_type(L,-1)!=LUA_TNIL) {
@@ -71,6 +140,20 @@ static int task_eq (lua_State * L) {
 	return 1;
 }
 
+///
+// Wraps an empty process with an environment and error function.
+// 
+// A process can be wrapped only once.
+//
+// Has the same parameters of the @{new} function.
+// 
+// @tparam[opt] function f environment of the process.
+// @tparam[optchain] function e error function of the process.
+// @tparam[opt=1] number n number of processes to create.
+//
+// @function wrap
+// @treturn process itself
+// @see new
 static int task_wrap (lua_State * L) {
 	int top=lua_gettop(L);
 	task_t s = clp_totask (L, 1);
@@ -113,6 +196,7 @@ static int task_tostring (lua_State * L) {
 	return 1;
 }
 
+
 static int task_destroyinstances (lua_State * L) {
 	task_t s = clp_totask (L, 1);
 	int n = luaL_optint(L, 2, 0);
@@ -131,6 +215,13 @@ static int task_destroyinstances (lua_State * L) {
 	return 1;
 }
 
+///
+// Create a new process from an existing one.
+//
+// All spawned processes share the same input channel.
+// @int n number of new processes
+// @treturn process itself
+// @function spawn
 static int task_instantiate (lua_State * L) {
 	task_t s = clp_totask (L, 1);
 	if (s->pool == NULL)
@@ -219,6 +310,11 @@ void clp_buildtask (lua_State * L, task_t t) {
 
 }
 
+///
+// Get the current pool associated to the process
+//
+// @treturn pool the pool of the process
+// @function pool
 static int task_getpool (lua_State * L) {
 	if(lua_gettop(L)>1) {
 		luaL_error(L,"To many arguments");
@@ -231,7 +327,12 @@ static int task_getpool (lua_State * L) {
 		lua_pushnil (L);
 	return 1;
 }
-
+///
+// Associate a pool to the process
+//
+// @tparam pool the pool to be associated
+// @treturn process itself
+// @function pool
 static int task_setpool (lua_State * L) {
 	task_t s = clp_totask (L, 1);
 	pool_t p = clp_topool (L, 2);
@@ -240,6 +341,12 @@ static int task_setpool (lua_State * L) {
 	return 1;
 }
 
+///
+// Get the parent of the current process
+//
+// @treturn[1] process the parent process
+// @treturn[2] nil if the process has no parent.
+// @function parent
 static int task_getparent (lua_State * L) {
 	task_t s = clp_totask (L, 1);
 	if (s->parent)
@@ -267,7 +374,7 @@ static const struct luaL_Reg TaskMetaFunctions[] = {
 	{"wrap", task_wrap},
 	{"input", task_input},
 	{"setinput", task_setinput},
-	{"add", task_instantiate},
+	{"spawn", task_instantiate},
 	{"remove", task_destroyinstances},
 	{"parent", task_getparent},
 	{"pool", task_getpool},
@@ -420,7 +527,7 @@ static const struct luaL_Reg LuaExportFunctions[] = {
 	{"new", clp_newtask},
 	{"get", clp_gettask},
 	{"destroy", clp_destroytask},
-	{"istask", task_istask},
+	{"isprocess", task_istask},
 	{NULL, NULL}
 };
 
@@ -506,3 +613,4 @@ void clp_destroyinstance(instance_t i) {
 	if(i->ev) clp_destroyevent(i->ev);
 	free(i);
 }
+

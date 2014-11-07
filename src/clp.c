@@ -1,3 +1,14 @@
+/// 
+// The main CLP module.
+//
+// CLP is a Lua library for bulding lightweight parallel processes
+// based on the concepts of Communicating Sequential Processes.
+//
+// @module clp
+// @author Tiago Salmito
+// @license MIT
+// @copyright Tiago Salmito - 2014
+
 #include <unistd.h> 
 #include <errno.h>
 #include <string.h>  
@@ -10,6 +21,7 @@
 
 pool_t clp_defaultpool=NULL;
 
+#ifdef DEBUG
 //can be found here  http://www.lua.org/pil/24.2.3.html
 void stackDump (lua_State *L, const char *text) {
 	int i;
@@ -41,10 +53,10 @@ void stackDump (lua_State *L, const char *text) {
 		}
 		printf("  ");  /* put a separator */
 	}
-	printf("\n");  /* end the listing */
+	printf("\n");  /* end §the listing */
 	printf("--------End Dump------------\n");
 }
-#ifdef DEBUG
+
 void tableDump(lua_State *L, int idx, const char* text)
 {
 	lua_pushvalue(L, idx);		// copy target table
@@ -64,17 +76,34 @@ void tableDump(lua_State *L, int idx, const char* text)
 }
 #endif
 
+///
+//Get the CLP library version string.
+//
+//@function version
+//
+//@treturn string the current version
 static int clp_version(lua_State * L) {
 	lua_pushliteral(L,CLP_VERSION);
 	return 1;
 }
 
+///
+// Get the current time sice epoch with a non-specified precision.
+// @function now
+// @treturn number the current time since epoch
 static int clp_gettime(lua_State * L) {
 	lua_pushnumber(L,now_secs());
 	return 1;
 }
 
 
+///
+// Get the current process
+//
+// @function self
+// @return[1] `process` the current running process
+// @return[2] nil if it was called from outside of a process
+// @see process
 static int clp_getself(lua_State *L) {
 	lua_pushliteral(L,CLP_INSTANCE_KEY);
 	lua_gettable(L, LUA_REGISTRYINDEX);	
@@ -86,6 +115,12 @@ static int clp_getself(lua_State *L) {
 	return 1;
 }
 
+///
+// Get the number of available processors
+//
+// @function cpus
+//
+// @treturn int the number of processors
 static int get_cpus() {
 #ifdef _WIN32
 #ifndef _SC_NPROCESSORS_ONLN
@@ -154,6 +189,34 @@ static const struct luaL_Reg LuaExportFunctions[] = {
 };
 
 
+///
+// Creates a new channel.
+//
+// This function is an alias to the @{channel.new} funcion.
+//
+// @function channel
+//
+// @see channel.new
+
+///
+// Creates a new channel.
+//
+// This function is an alias to the @{process.new} funcion.
+//
+// @function process
+// @see process.new
+
+
+///
+//
+// This field holds a reference to the default pool of the process.
+//
+// Every @{process} belongs this pool upon creation.
+//
+// @field pool (@{pool}) The default pool.
+//
+// @see pool
+
 CLP_EXPORTAPI int luaopen_clp(lua_State *L) {
 	lua_newtable(L);
 	clp_require(L,"clp.pool",luaopen_clp_pool);	
@@ -172,10 +235,6 @@ CLP_EXPORTAPI int luaopen_clp(lua_State *L) {
 	//lua_setfield(L,-3,"pool");
 	lua_pop(L,2);
 	clp_require(L,"clp.event",luaopen_clp_event);
-	lua_getfield(L,-1,"encode");
-	lua_setfield(L,-3,"encode");
-	lua_getfield(L,-1,"decode");
-	lua_setfield(L,-3,"decode");
 	lua_setfield(L,-2,"event");
 	clp_require(L,"clp.scheduler",luaopen_clp_scheduler);
 	lua_setfield(L,-2,"scheduler");
