@@ -133,7 +133,7 @@ static void thread_resume_instance(instance_t i) {
 		return;
 	}
 	//  	printf("instance %s\n",instance_state[i->state]);
-	lua_remove(L,1);
+	if(lua_type(L,1)==LUA_TFUNCTION) lua_remove(L,1);
 	switch(i->state) {
 		case I_READY:
 			_DEBUG("Thread Yielded\n");

@@ -595,9 +595,10 @@ void clp_initinstance(instance_t i) {
 	lua_pop(L,1);
 	i->state=I_READY;
 }
-
+//static int i=0;
 instance_t clp_newinstance(task_t s) {
 	lua_State * L = luaL_newstate();
+//	printf("created %p %d\n",L,i++);
 	instance_t i=malloc(sizeof(struct instance_s));
 	i->L=L;
 	i->task=s;
