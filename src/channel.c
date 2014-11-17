@@ -268,8 +268,8 @@ int clp_pushevent(lua_State *L) {
 		_DEBUG("Push: main process is getter %p\n",c);
 		c->read_wait=0;
 		c->read_event=ev;
-		CHANNEL_UNLOCK(c);
 		MUTEX_LOCK(&c->mutex);
+		CHANNEL_UNLOCK(c);
 		SIGNAL_ONE(&c->read_cond);
 		MUTEX_UNLOCK(&c->mutex);
 		_DEBUG("push: unlock %p\n",c);
@@ -310,8 +310,8 @@ int clp_pushevent(lua_State *L) {
 			c->write_event=ev;
 			c->write_wait=1;
 			_DEBUG("push: unlock %p\n",c);  		
-			CHANNEL_UNLOCK(c);
 			MUTEX_LOCK(&c->mutex);
+			CHANNEL_UNLOCK(c);
 			SIGNAL_WAIT(&c->write_cond,&c->mutex,-1.0);
 			MUTEX_UNLOCK(&c->mutex);  		
 			lua_pushboolean(L,1);
@@ -367,8 +367,8 @@ static int channel_getevent(lua_State *L) {
 		int n=clp_restoreevent(L,c->write_event);
 		clp_destroyevent(c->write_event);
 		c->write_event=NULL;
-		CHANNEL_UNLOCK(c);
 		MUTEX_LOCK(&c->mutex);
+		CHANNEL_UNLOCK(c);
 		SIGNAL_ONE(&c->write_cond);
 		MUTEX_UNLOCK(&c->mutex);
 		_DEBUG("get: unlock %p\n",c);
@@ -438,8 +438,8 @@ static int channel_getevent(lua_State *L) {
 		_DEBUG("get: i am the main process, gotta wait :( %p\n",c);
 		lua_pop(L,1);
 		c->read_wait=1;
-		CHANNEL_UNLOCK(c);
 		MUTEX_LOCK(&c->mutex);
+		CHANNEL_UNLOCK(c);
 		SIGNAL_WAIT(&c->read_cond,&c->mutex,-1.0);
 		int n=0;
 		if(c->read_event) {
