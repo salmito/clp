@@ -74,9 +74,9 @@ static void thread_resume_instance(instance_t i) {
 		clp_initinstance(i);
 	}
 	i->args=0;
+	lua_settop(L,0);
 	lua_getfield(L,LUA_REGISTRYINDEX,CLP_ERRORFUNCTION_KEY);
 	lua_getfield(L,LUA_REGISTRYINDEX,TASK_HANDLER_KEY);
-
 	switch(i->state) {
 		case I_CLOSED:
 			lua_pop(L,1);
@@ -132,8 +132,8 @@ static void thread_resume_instance(instance_t i) {
 		clp_destroyinstance(i);
 		return;
 	}
-	//  	printf("instance %s\n",instance_state[i->state]);
-	if(lua_type(L,1)==LUA_TFUNCTION) lua_remove(L,1);
+
+	lua_remove(L,1);
 	switch(i->state) {
 		case I_READY:
 			_DEBUG("Thread Yielded\n");

@@ -71,7 +71,6 @@ static int event_wait_io(lua_State * L) {
 	lua_gettable(L, LUA_REGISTRYINDEX);
 	if(lua_type(L,-1)!=LUA_TLIGHTUSERDATA) luaL_error(L,"Cannot wait outside of an instance");
 	instance_t i=lua_touserdata(L,-1);
-	lua_pop(L,1);
 	i->state=I_RESUME_SUCCESS;
 	if(time>=0.0) {
 		struct timeval to={time,(((double)time-((int)time))*1000000.0L)};
