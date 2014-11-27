@@ -44,7 +44,7 @@ print(chan4:get(),chan4:get(),chan4:get())
 print(pcall(chan4.get,chan4)) --fail
 
 local resp=clp.channel()
-local s=clp.process(function(msg) print('hello',msg) resp:put(msg) end, function (e) print('err',resp:close()) return e end):add(4)('john')('paul')('george')('ringo')
+local s=clp.process(function(msg) print('hello',msg) resp:put(msg) end, function (e) print('err',resp:close()) return e end):spawn(4)('john')('paul')('george')('ringo')
 s:input():close()
 local function f()
   while true do print('resp',resp:get()) end
