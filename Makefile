@@ -1,6 +1,7 @@
 LUA_VER=5.1
 
 LUA_LIBDIR=/usr/local/lib/lua/$(LUA_VER)
+LUA_SHAREDIR=/usr/local/share/lua/$(LUA_VER)
 
 SRC_DIR=src/
 MODULE=clp
@@ -44,3 +45,7 @@ else
 	md5sum $(MODULE)-$(VERSION).tar.gz > $(MODULE)-$(VERSION).md5
 endif
 
+install-mod: 
+	mkdir -p $(LUA_SHAREDIR)/clp/
+	cp -r clp $(LUA_SHAREDIR)/clp/
+	

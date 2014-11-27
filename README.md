@@ -1,4 +1,4 @@
-# CLP
+# Communicating Lua Processes
 CLP is a Lua library for bulding lightweight parallel processes based on the concepts of CSP (Communicating Sequential Processes).
 
 ## Compiling and Installing
@@ -11,6 +11,8 @@ Currently, CLP requires Threading Building Blocks (TBB) and Libevent libraries t
 For more information on the TBB library: http://threadingbuildingblocks.org/
 
 For more information on the Libevent library: http://libevent.org/
+
+If you want to try it out on windows, just clone the https://github.com/Salmito/ZeroBraneStudio repository fork with the CLP binary preinstalled.
 
 To install all dependencies for Lua 5.1 on a Debian like linux (Ubuntu, mint, etc) do: 
 ```
@@ -65,7 +67,7 @@ Or e-mail me: Tiago Salmito - tiago _[at]_ salmito _[dot]_ com
 ## Copyright notice
 CLP is published under the same MIT license as Lua 5.1.
 
-Copyright (C) 2012 Tiago Salmito
+Copyright (C) 2014 Tiago Salmito
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

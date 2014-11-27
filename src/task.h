@@ -12,6 +12,7 @@
 #define TASK_H
 
 typedef struct clp_Task * task_t;
+typedef struct instance_s * instance_t;
 
 #define TASK_HANDLER_KEY "task.handler"
 
@@ -44,11 +45,11 @@ task_t clp_totask(lua_State *L, int i);
 void clp_buildtask(lua_State * L,task_t t);
 
 //instance
-typedef struct instance_s * instance_t;
 
 enum instance_state_t {
 	I_CREATED=0x0,
 	I_READY,
+	I_SLEEP,
 	I_RUNNING,
 	I_RESUME_SUCCESS,
 	I_RESUME_FAIL,

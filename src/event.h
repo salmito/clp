@@ -5,6 +5,8 @@
 
 typedef struct event_s * event_t;
 
+#include "task.h"
+
 struct event_s {
 	char * data;
 	size_t len;
@@ -13,5 +15,6 @@ struct event_s {
 event_t clp_newevent(const char * ev, size_t len);
 int clp_restoreevent(lua_State *L,event_t ev);
 void clp_destroyevent(event_t e);
+void clp_sleepevent(instance_t i);
 
 #endif

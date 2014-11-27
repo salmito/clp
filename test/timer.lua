@@ -1,5 +1,6 @@
 local clp=require'clp'
 
+clp.pool:add(2)
 
 local function add_timer(time,f)
 	return clp.process(function()

@@ -22,7 +22,7 @@ assert(clp.pool==s1:pool())
 end
 
 s1:wrap(handler)
-s1:add(1)
+s1:spawn(1)
 print('put',s1,s1('par1',math.pi))
 
 print(s1,s1:env(),s1:size(),s1:input())

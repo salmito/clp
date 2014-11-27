@@ -1,3 +1,13 @@
+///
+// Auxiliary event subsystem
+//
+// Runs an event loop for dealing with asynchronous IO calls.
+//
+// @module event
+// @author Tiago Salmito
+// @license MIT
+// @copyright Tiago Salmito - 201
+//
 #include "clp.h"
 #include "event.h"
 #include "task.h"
@@ -35,7 +45,9 @@ static void dummy_event(evutil_socket_t fd, short events, void *arg) {}
 
 static void io_ready(evutil_socket_t fd, short event, void *arg) {
 	instance_t i=(instance_t)arg;
-	if(event&EV_TIMEOUT) 
+	if(i->state==I_SLEEP)
+		i->state=I_RESUME_SUCCESS;
+	else if(event&EV_TIMEOUT) 
 		i->state=I_RESUME_FAIL;
 	clp_pushinstance(i);
 }
@@ -59,7 +71,6 @@ static int event_wait_io(lua_State * L) {
 	lua_gettable(L, LUA_REGISTRYINDEX);
 	if(lua_type(L,-1)!=LUA_TLIGHTUSERDATA) luaL_error(L,"Cannot wait outside of an instance");
 	instance_t i=lua_touserdata(L,-1);
-	lua_pop(L,1);
 	i->state=I_RESUME_SUCCESS;
 	if(time>=0.0) {
 		struct timeval to={time,(((double)time-((int)time))*1000000.0L)};
@@ -70,10 +81,23 @@ static int event_wait_io(lua_State * L) {
 	return lua_yield(L,0);
 }
 
+///
+// Put current process to sleep for a specified time.
+//
+// If the current process is the main process, it will be
+// blocked while sleeping.
+//
+// Else, the process yields their current thread during the 
+// specified time.
+// 
+// @number t The amount of time to sleep, in seconds
+// @raise Error if `t` is negative
+// @function sleep
 static int event_sleep(lua_State *L) {
-	double time=0.0l;  
-	time=lua_tonumber(L,1);
-	if(time<0.0L) luaL_error(L,"Invalid time (negative)");
+	if(lua_gettop(L)>1) luaL_error(L,"Sleep must have at most one parameter");
+	if(lua_type(L,1)!=LUA_TNUMBER) luaL_error(L,"Sleep parameter must be a number");
+	lua_Number time=lua_tonumber(L,1);
+	if(time<0) luaL_error(L,"Sleep time must be zero or positive");
 	lua_pushliteral(L,CLP_INSTANCE_KEY);
 	lua_gettable(L, LUA_REGISTRYINDEX);
 	if(lua_type(L,-1)!=LUA_TLIGHTUSERDATA) {
@@ -83,15 +107,19 @@ static int event_sleep(lua_State *L) {
 	}
 	instance_t i=lua_touserdata(L,-1);
 	lua_pop(L,1);
-	i->state=I_RESUME_SUCCESS;
-	struct timeval to={time,(((double)time-((int)time))*1000000.0L)};
-	//  	printf("SEC %ld usec %ld\n",to.tv_sec,to.tv_usec);
-	event_base_once(loop,-1,EV_TIMEOUT,io_ready,i,&to);
-	return lua_yield(L,0);
+	i->state=I_SLEEP;
+	return lua_yield(L,1);
 }
 
+void clp_sleepevent(instance_t i) {
+	double time=lua_tonumber(i->L,1);
+	lua_pop(i->L,1);
+	struct timeval to={time,(((double)time-((int)time))*1000000.0L)};
+	event_base_once(loop,-1,EV_TIMEOUT,io_ready,i,&to);
+}
+
+
 static THREAD_RETURN_T THREAD_CALLCONV event_main(void *t_val) {
-	loop = event_base_new();
 	if(!loop) return NULL;
 	struct event *listener_event = event_new(loop, -1, EV_READ|EV_PERSIST, dummy_event, NULL);
 	event_add(listener_event, NULL);
@@ -100,23 +128,45 @@ static THREAD_RETURN_T THREAD_CALLCONV event_main(void *t_val) {
 }
 
 int clp_restoreevent(lua_State *L,event_t ev) {
-	//	stackDump(L,"");
 	lua_pushcfunction(L,mar_decode);
 	lua_pushlstring(L,ev->data,ev->len);
 	lua_call(L,1,1);
-	//	stackDump(L,"");
 	int top=lua_gettop(L);
 	int n=
 #if LUA_VERSION_NUM < 502
 		luaL_getn(L,-1);
 #else
-	luaL_len(L,-1);
+		luaL_len(L,-1);
 #endif
 	int j;
 	for(j=1;j<=n;j++) lua_rawgeti(L,top,j);
 	lua_remove(L,top);
 	return n;
 }
+
+///
+// Serializes lua values to a buffer.
+//
+// Serializes tables, which may contain cycles, Lua functions
+// with upvalues and basic data types.
+//
+// Note: Current implementation uses lua-marshal 
+// (https://github.com/richardhundt/lua-marshal)
+//
+// @param v value to serialize
+// @treturn string A buffer with serialized values
+// @function encode
+
+///
+// Deserialize buffers to their correspondent lua value
+//
+// Note: Current implementation uses lua-marshal 
+// (https://github.com/richardhundt/lua-marshal)
+//
+// @string buffer the buffer
+//
+// @return the value
+// @function decode
 
 CLP_EXPORTAPI	int luaopen_clp_event(lua_State *L) {
 	const struct luaL_Reg LuaExportFunctions[] = {
@@ -131,6 +181,7 @@ CLP_EXPORTAPI	int luaopen_clp_event(lua_State *L) {
 #ifndef _WIN32
 		evthread_use_pthreads();
 #endif
+		loop = event_base_new();
 		THREAD_CREATE(event_thread, &event_main, NULL, 0);
 	}
 	lua_newtable(L);
