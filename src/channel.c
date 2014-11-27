@@ -541,9 +541,29 @@ static int channel_get(lua_State * L) {
 	return 1;
 }
 
+static int channel_ischannel(lua_State * L) {
+	lua_getmetatable (L, 1);
+	get_metatable (L);
+	
+	int has = 0;
+#if LUA_VERSION_NUM > 501
+	if (lua_compare (L, -1, -2, LUA_OPEQ))
+		has = 1;
+#else
+	if (lua_equal (L, -1, -2))
+		has = 1;
+#endif
+	lua_pop (L, 2);
+	lua_pushboolean (L, has);
+	return 1;
+}
+
+
+
 static const struct luaL_Reg LuaExportFunctions[] = {
 	{"new",clp_channelnew},
 	{"get",channel_get},
+	{"ischannel",channel_ischannel},
 	{NULL,NULL}
 };
 
