@@ -1,3 +1,13 @@
+///
+// Auxiliary event subsystem
+//
+// Runs an event loop for dealing with asynchronous IO calls.
+//
+// @module event
+// @author Tiago Salmito
+// @license MIT
+// @copyright Tiago Salmito - 201
+//
 #include "clp.h"
 #include "event.h"
 #include "task.h"
@@ -61,7 +71,6 @@ static int event_wait_io(lua_State * L) {
 	lua_gettable(L, LUA_REGISTRYINDEX);
 	if(lua_type(L,-1)!=LUA_TLIGHTUSERDATA) luaL_error(L,"Cannot wait outside of an instance");
 	instance_t i=lua_touserdata(L,-1);
-	lua_pop(L,1);
 	i->state=I_RESUME_SUCCESS;
 	if(time>=0.0) {
 		struct timeval to={time,(((double)time-((int)time))*1000000.0L)};
@@ -72,6 +81,18 @@ static int event_wait_io(lua_State * L) {
 	return lua_yield(L,0);
 }
 
+///
+// Put current process to sleep for a specified time.
+//
+// If the current process is the main process, it will be
+// blocked while sleeping.
+//
+// Else, the process yields their current thread during the 
+// specified time.
+// 
+// @number t The amount of time to sleep, in seconds
+// @raise Error if `t` is negative
+// @function sleep
 static int event_sleep(lua_State *L) {
 	if(lua_gettop(L)>1) luaL_error(L,"Sleep must have at most one parameter");
 	if(lua_type(L,1)!=LUA_TNUMBER) luaL_error(L,"Sleep parameter must be a number");
@@ -122,6 +143,30 @@ int clp_restoreevent(lua_State *L,event_t ev) {
 	lua_remove(L,top);
 	return n;
 }
+
+///
+// Serializes lua values to a buffer.
+//
+// Serializes tables, which may contain cycles, Lua functions
+// with upvalues and basic data types.
+//
+// Note: Current implementation uses lua-marshal 
+// (https://github.com/richardhundt/lua-marshal)
+//
+// @param v value to serialize
+// @treturn string A buffer with serialized values
+// @function encode
+
+///
+// Deserialize buffers to their correspondent lua value
+//
+// Note: Current implementation uses lua-marshal 
+// (https://github.com/richardhundt/lua-marshal)
+//
+// @string buffer the buffer
+//
+// @return the value
+// @function decode
 
 CLP_EXPORTAPI	int luaopen_clp_event(lua_State *L) {
 	const struct luaL_Reg LuaExportFunctions[] = {

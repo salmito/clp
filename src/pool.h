@@ -9,6 +9,7 @@
 typedef struct pool_s {
 	volatile size_t size;
 	LFqueue_t ready;
+	volatile int lock;
 } * pool_t;
 
 pool_t clp_topool(lua_State *L, int i);

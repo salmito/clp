@@ -9,6 +9,10 @@
 *.pch
 
 # Libraries
+*.lib
+*.a
+*.la
+*.lo
 
 # Shared objects (inc. Windows DLLs)
 *.so
@@ -22,3 +26,8 @@
 
 # Backups
 *~
+*.i*86
+*.x86_64
+*.hex
+*.swp
+*.swo

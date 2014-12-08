@@ -74,9 +74,9 @@ static void thread_resume_instance(instance_t i) {
 		clp_initinstance(i);
 	}
 	i->args=0;
+	lua_settop(L,0);
 	lua_getfield(L,LUA_REGISTRYINDEX,CLP_ERRORFUNCTION_KEY);
 	lua_getfield(L,LUA_REGISTRYINDEX,TASK_HANDLER_KEY);
-
 	switch(i->state) {
 		case I_CLOSED:
 			lua_pop(L,1);
@@ -132,7 +132,7 @@ static void thread_resume_instance(instance_t i) {
 		clp_destroyinstance(i);
 		return;
 	}
-	//  	printf("instance %s\n",instance_state[i->state]);
+
 	lua_remove(L,1);
 	switch(i->state) {
 		case I_READY:
@@ -175,7 +175,9 @@ static THREAD_RETURN_T THREAD_CALLCONV thread_mainloop(void *t_val) {
 	}
 	self->state=THREAD_DESTROYED;
 	_DEBUG("Thread %p quitting\n",self);
-	self->pool->size--; //TODO atomic
+	CHANNEL_LOCK(self->pool);
+	self->pool->size--;
+	CHANNEL_UNLOCK(self->pool);
 	return t_val;
 }
 

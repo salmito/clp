@@ -1,9 +1,35 @@
+///
+// Thread pool submodule.
+//
+// Processes share OS threads from a dynamic thread pool cooperatively.
+// Threads can be created and destoyed at any time. 
+// Threads are scheduled to be destroyed the as soon as they
+// become IDLE.
+//
+// @module pool
+// @author Tiago Salmito
+// @license MIT
+// @copyright Tiago Salmito - 2014
+
 #include <stdlib.h>
 #include "task.h"
 #include "pool.h"
 #include "scheduler.h"
 
+///
+// Creates a new pool
+//
+// @int[opt=1] size initial size of the pool. 
+// @treturn pool the new pool
+// @function new
+
 #define DEFAULT_QUEUE_CAPACITY -1
+
+///
+// Pool type.
+//
+// Any function in this section belongs to `pool` type methods.
+// @type pool
 
 static void get_metatable(lua_State * L);
 
@@ -32,9 +58,16 @@ static int pool_ptr(lua_State * L) {
 	return 1;
 }
 
+///
+// Schedule the addition on threads to the pool.
+//
+// @tparam int number of new threads
+// @treturn pool a pool object
+// @function add
 static int pool_addthread(lua_State * L) {
 	pool_t s=clp_topool(L, 1);
 	int size=luaL_optint(L, 2, 1);
+	CHANNEL_LOCK(s);
 	if(size<0) {
 		luaL_error(L,"argument must be positive or zero");
 	}
@@ -43,16 +76,30 @@ static int pool_addthread(lua_State * L) {
 		clp_newthread(L,s);
 		_DEBUG("pool_addthread pool:%p\n",s);
 	}
-	s->size+=size; //TODO mutex here
+	s->size+=size;
+	CHANNEL_UNLOCK(s);
 	return size;
 }
 
+///
+// Return the current size of the pool
+// @treturn int the current size
+// @function size
 static int pool_size(lua_State * L) {
 	pool_t s = clp_topool(L, 1);
+	CHANNEL_LOCK(s);
 	lua_pushinteger(L,s->size);
+	CHANNEL_UNLOCK(s);
 	return 1;
 }
 
+///
+// Schedule the destruction of single thread to the pool.
+//
+// Threads are scheduled to be destroyed the as soon as they
+// become IDLE.
+//
+// @function kill
 static int pool_killthread(lua_State * L) {
 	pool_t pool=clp_topool(L, 1);
 	void *a=NULL;
@@ -99,8 +146,9 @@ static int pool_new(lua_State *L) {
 	if(size<0) luaL_error(L,"Initial pool size must be greater than zero");
 	pool_t p=malloc(sizeof(struct pool_s));
 	p->size=0;
+	p->lock=0;
 	p->ready=clp_lfqueue_new();
-	//clp_lfqueue_setcapacity(p->ready,-1);
+	clp_lfqueue_setcapacity(p->ready,-1);
 	clp_buildpool(L,p);
 	lua_pushcfunction(L,pool_addthread);
 	lua_pushvalue(L,-2);
@@ -120,9 +168,6 @@ static int pool_get(lua_State * L) {
 	lua_pushliteral(L,"Pool is null");
 	return 2;
 }
-
-//TODO Destroy pool
-
 
 static const struct luaL_Reg LuaExportFunctions[] = {
 	{"new",pool_new},
