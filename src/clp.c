@@ -209,11 +209,11 @@ static const struct luaL_Reg LuaExportFunctions[] = {
 // @see channel.new
 
 ///
-// Creates a new channel.
+// Creates a new process.
 //
 // This function is an alias to the @{process.new} funcion.
 //
-// @function process
+// @function spawn
 // @see process.new
 
 
@@ -250,11 +250,13 @@ CLP_EXPORTAPI int luaopen_clp(lua_State *L) {
 	lua_setfield(L,-2,"scheduler");
 	clp_require(L,"clp.channel",luaopen_clp_channel);
 	lua_getfield(L,-1,"new");
-	lua_setfield(L,-3,"channel");
+	lua_pushvalue(L,-1);
+	lua_setfield(L,-4,"channel");
+	lua_setfield(L,-3,"chan");
 	lua_pop(L,1);
 	clp_require(L,"clp.process",luaopen_clp_process);
 	lua_getfield(L,-1,"new");
-	lua_setfield(L,-3,"process");
+	lua_setfield(L,-3,"spawn");
 	lua_pop(L,1);
 	lua_newtable(L);
 	luaL_loadstring(L,"return function() return require'clp' end");

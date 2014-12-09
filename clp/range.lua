@@ -69,7 +69,7 @@ if not (...) then
   local c=clp.channel()
   local range=t.range
   print(c)
-  clp.process(function()
+  clp.spawn(function()
       for i=1,10 do for j in range(1,2) do c:put(i,j) end end
       c:close()
   end)()
