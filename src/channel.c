@@ -429,6 +429,7 @@ static int channel_getevent(lua_State *L) {
 	}
 
 	if(!c->sync) { 
+		CHANNEL_UNLOCK(c);
 		lua_pushnil(L);
 		lua_pushliteral(L,"Channel is empty");
 		return 2;
