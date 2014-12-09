@@ -1,7 +1,7 @@
 local clp=require'clp'
 local p=print
 local i={10}
-local s1=clp.process(function(str) 
+local s1=clp.spawn(function(str) 
   i[1]=20
   print(str,i[1])
   
@@ -18,7 +18,7 @@ local function g()
 	f()
 end
 
-clp.process(function() g() end)()
+clp.spawn(function() g() end)()
 	
 
 clp.event.sleep(1)

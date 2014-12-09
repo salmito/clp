@@ -3,7 +3,7 @@ local clp=require'clp'
 clp.pool:add(2)
 
 local function add_timer(time,f)
-	return clp.process(function()
+	return clp.spawn(function()
 	 	while true do
 			clp.event.sleep(time)
 			f()		

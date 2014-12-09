@@ -2,15 +2,15 @@ local clp=require'clp'
 
 clp.pool:add(clp.cpus()-1)
 
-local select=clp.process(function(out,...)
+local select=clp.spawn(function(out,...)
 	local arg={...}
   local len=#arg
   local gc=clp.channel()
 	for i=1,len do
 		local c=arg[i]
-		clp.process(function() while true do out:put(c:get()) end end,function (e) gc:put() end)()
+		clp.spawn(function() while true do out:put(c:get()) end end,function (e) gc:put() end)()
 	end
-  clp.process(function() 
+  clp.spawn(function() 
       for i=len,1,-1 do 
           print('finished',i)
         gc:get() 
@@ -36,7 +36,7 @@ local function f(name,c)
 	c:close()
 end
 
-local p1,p2,p3=clp.process(f),clp.process(f),clp.process(f)
+local p1,p2,p3=clp.spawn(f),clp.spawn(f),clp.spawn(f)
 
 p1('task1',c1)
 p2('task2',c2)

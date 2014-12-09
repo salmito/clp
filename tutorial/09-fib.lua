@@ -4,7 +4,7 @@ local n=1000
 
 clp.pool:add(clp.cpus()-1)
 
-local fib=clp.process()
+local fib=clp.spawn()
 
 fib:wrap(function (a,b,current,goal,ret)
     if current>=goal then

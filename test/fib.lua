@@ -28,7 +28,7 @@ local function fib(n)
 	return fib(n-1)+fib(n-2)
 end
 
-local fib_t=clp.process()
+local fib_t=clp.spawn()
 
 local i=fib_t:input()
 
