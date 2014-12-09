@@ -45,7 +45,7 @@ end
 
 function t.stderr(c,postfix)
 	local chan=c or clp.channel()
-	local close=clp.channel(1)
+	local close=clp.channel(0)
 	local p=clp.process(function()
 		local io=require'io'
 		local i=1

@@ -368,7 +368,7 @@ static int channel_getevent(lua_State *L) {
 		clp_destroyevent(c->write_event);
 		c->write_event=NULL;
 		MUTEX_LOCK(&c->mutex);
-		CHANNEL_UNLOCK(c);
+		CHANNEL_UNLOCK(c); //Barrier here
 		SIGNAL_ONE(&c->write_cond);
 		MUTEX_UNLOCK(&c->mutex);
 		_DEBUG("get: unlock %p\n",c);
@@ -502,6 +502,7 @@ void clp_pushchannel(lua_State * L,channel_t t) {
 		return;
 	lua_pop(L,1);
 	channel_t *s=lua_newuserdata(L,sizeof(channel_t *));
+	//TODO ++reference
 	*s=t;
 	get_metatable(L);
 	lua_setmetatable(L,-2);
