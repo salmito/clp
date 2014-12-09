@@ -19,6 +19,9 @@
 #include "pool.h"
 #include "threading.h"
 
+#include "lualib.h"
+#include "lauxlib.h"
+
 pool_t clp_defaultpool=NULL;
 
 //can be found here  http://www.lua.org/pil/24.2.3.html
@@ -162,6 +165,12 @@ static int clp_cpus(lua_State *L) {
 	return 1;
 }
 
+static int clp_loadlibs(lua_State *L) {
+	luaL_openlibs(L);
+	return 0;
+}
+
+
 static void clp_require(lua_State *L, const char *lib, lua_CFunction func) {
 #if LUA_VERSION_NUM < 502 
 	lua_getglobal(L,"require");
@@ -185,6 +194,7 @@ static const struct luaL_Reg LuaExportFunctions[] = {
 	{"getmetatable",clp_getmetatable},
 	{"setmetatable",clp_setmetatable},
 	{"self",clp_getself},
+	{"openlibs",clp_loadlibs},
 	{NULL,NULL}
 };
 
