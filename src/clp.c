@@ -19,6 +19,9 @@
 #include "pool.h"
 #include "threading.h"
 
+#include "lualib.h"
+#include "lauxlib.h"
+
 pool_t clp_defaultpool=NULL;
 
 //can be found here  http://www.lua.org/pil/24.2.3.html
@@ -162,6 +165,12 @@ static int clp_cpus(lua_State *L) {
 	return 1;
 }
 
+static int clp_loadlibs(lua_State *L) {
+	luaL_openlibs(L);
+	return 0;
+}
+
+
 static void clp_require(lua_State *L, const char *lib, lua_CFunction func) {
 #if LUA_VERSION_NUM < 502 
 	lua_getglobal(L,"require");
@@ -185,6 +194,7 @@ static const struct luaL_Reg LuaExportFunctions[] = {
 	{"getmetatable",clp_getmetatable},
 	{"setmetatable",clp_setmetatable},
 	{"self",clp_getself},
+	{"openlibs",clp_loadlibs},
 	{NULL,NULL}
 };
 
@@ -199,11 +209,11 @@ static const struct luaL_Reg LuaExportFunctions[] = {
 // @see channel.new
 
 ///
-// Creates a new channel.
+// Creates a new process.
 //
 // This function is an alias to the @{process.new} funcion.
 //
-// @function process
+// @function spawn
 // @see process.new
 
 
@@ -240,11 +250,13 @@ CLP_EXPORTAPI int luaopen_clp(lua_State *L) {
 	lua_setfield(L,-2,"scheduler");
 	clp_require(L,"clp.channel",luaopen_clp_channel);
 	lua_getfield(L,-1,"new");
-	lua_setfield(L,-3,"channel");
+	lua_pushvalue(L,-1);
+	lua_setfield(L,-4,"channel");
+	lua_setfield(L,-3,"chan");
 	lua_pop(L,1);
 	clp_require(L,"clp.process",luaopen_clp_process);
 	lua_getfield(L,-1,"new");
-	lua_setfield(L,-3,"process");
+	lua_setfield(L,-3,"spawn");
 	lua_pop(L,1);
 	lua_newtable(L);
 	luaL_loadstring(L,"return function() return require'clp' end");

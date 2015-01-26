@@ -1,5 +1,5 @@
 local clp=require'clp'
-local s1=clp.process()
+local s1=clp.spawn()
 local function handler(...) 
 --print('args',...)
 
@@ -10,7 +10,7 @@ print('pool',clp.pool,s1:pool(),clp.pool==s1:pool())
 assert(clp.pool==s1:pool())
 
 	
-	clp.process(function()
+	clp.spawn(function()
 		print(
 		'nested task result', 
 			assert(clp:self():parent()==s1)

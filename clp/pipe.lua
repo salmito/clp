@@ -5,7 +5,7 @@ local t={}
 function t.stdin(c)
 	local chan=c or clp.channel()
 	local close=clp.channel(1)
-	local p=clp.process(function()
+	local p=clp.spawn(function()
 		local io=require'io'
 		while true do
 			clp.event.waitfd(0,clp.event.READ)
@@ -25,7 +25,7 @@ end
 function t.stdout(c,postfix)
 	local chan=c or clp.channel()
 	local close=clp.channel(0)
-	local p=clp.process(function()
+	local p=clp.spawn(function()
 		local io=require'io'
 		local i=1
 		while true do 
@@ -45,8 +45,8 @@ end
 
 function t.stderr(c,postfix)
 	local chan=c or clp.channel()
-	local close=clp.channel(1)
-	local p=clp.process(function()
+	local close=clp.channel(0)
+	local p=clp.spawn(function()
 		local io=require'io'
 		local i=1
 		while true do 

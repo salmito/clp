@@ -13,7 +13,7 @@ local function call(s,...)
 end
 
 local function sync(f,...)
-  return clp.process(function(i,o)
+  return clp.spawn(function(i,o)
      o:put(f(i:get()))
   end,...)
 end
@@ -44,13 +44,13 @@ print(clp.now()-init,call(authenticate,{user='Me',hash='pass123'},'pass123'))
 print(clp.now()-init,call(authenticate,{user='Me',hash='pass123'},'pass321'))
 
 local function chain(s1,s2,...) 
-  return clp.process(
+  return clp.spawn(
     function(...)
       s2(call(s1,...))
     end,...)
 end
 
-local print_s=clp.process(function(...)
+local print_s=clp.spawn(function(...)
     print(clp.now()-init,...)
 end)
 

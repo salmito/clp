@@ -2,7 +2,7 @@ local clp=require'clp'
 
 local function line(file,c)
   local c=c or clp.channel()
-	clp.process(function()
+	clp.spawn(function()
 		local io=require'io'
 		f=assert(io.open(file,"r"))
 		local f=f

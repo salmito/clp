@@ -43,7 +43,7 @@ startup:start()
 local finish=clp.channel()
 
 for i=1,np do
-  clp.process(function() finish:put() error() end)()
+  clp.spawn(function() finish:put() error() end)()
 end
 
 print('test','interpreter','n_proc','n_msg','size','real_time','cpu_time')
@@ -59,14 +59,14 @@ bench:start()
 
 local finish,iteration=clp.channel(),clp.channel()
 
-clp.process(function(str) 
+clp.spawn(function(str) 
       for i=1,nm do
         iteration:put(str)
       end
       error() 
  end)(string.rep('X',it))
  
- clp.process(function() 
+ clp.spawn(function() 
       for i=1,nm do
         assert(#iteration:get()==it)
       end
