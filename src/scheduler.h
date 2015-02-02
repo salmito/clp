@@ -1,7 +1,7 @@
 #ifndef _SCHEDULER_H_
 #define _SCHEDULER_H_
 
-#include "task.h"
+#include "process.h"
 #include "threading.h"
 #include "pool.h"
 

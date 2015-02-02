@@ -16,7 +16,7 @@ CC=gcc
 G_PLUS_PLUS=g++
 
 OBJ=  clp.o \
-		task.o \
+		process.o \
 		lf_queue.o \
 		marshal.o \
 		event.o \

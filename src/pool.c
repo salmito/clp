@@ -12,7 +12,7 @@
 // @copyright Tiago Salmito - 2014
 
 #include <stdlib.h>
-#include "task.h"
+#include "process.h"
 #include "pool.h"
 #include "scheduler.h"
 

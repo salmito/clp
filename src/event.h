@@ -5,7 +5,7 @@
 
 typedef struct event_s * event_t;
 
-#include "task.h"
+#include "process.h"
 
 struct event_s {
 	char * data;

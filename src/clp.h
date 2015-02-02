@@ -9,7 +9,7 @@
 #ifndef _CLP_H
 #define _CLP_H
 
-#define CLP_VERSION "0.1.0"
+#define CLP_VERSION "0.2.1"
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -32,7 +32,7 @@ void tableDump(lua_State *L, int idx, const char* text);
 #endif
 #endif  
 
-#define CLP_TASK_METATABLE "clp-Process *"
+#define CLP_PROCESS_METATABLE "clp-Process *"
 #define CLP_POOL_METATABLE "clp-Pool *"
 #define CLP_THREAD_METATABLE "clp-Thread *"
 #define CLP_CHANNEL_METATABLE "clp-Channel *"

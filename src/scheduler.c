@@ -76,7 +76,7 @@ static void thread_resume_instance(instance_t i) {
 	i->args=0;
 	lua_settop(L,0);
 	lua_getfield(L,LUA_REGISTRYINDEX,CLP_ERRORFUNCTION_KEY);
-	lua_getfield(L,LUA_REGISTRYINDEX,TASK_HANDLER_KEY);
+	lua_getfield(L,LUA_REGISTRYINDEX,PROCESS_HANDLER_KEY);
 	switch(i->state) {
 		case I_CLOSED:
 			lua_pop(L,1);
@@ -167,7 +167,7 @@ static THREAD_RETURN_T THREAD_CALLCONV thread_mainloop(void *t_val) {
 		_DEBUG("Thread %p wating for ready instaces in %p (%p)\n",self,self->pool,self->pool->ready);
 		self->state=THREAD_IDLE;
 
-		clp_lfqueue_pop(self->pool->ready,(void**)&i);
+		clp_lfqueue_pop(self->pool->ready,&i);
 		if(i==NULL) break;
 		_DEBUG("Thread %p got a ready instace %p\n",self,i);
 		self->state=THREAD_RUNNING;
@@ -205,7 +205,7 @@ static int thread_from_ptr (lua_State *L) {
 }
 
 void clp_pushinstance(instance_t i) {
-	return clp_lfqueue_push(i->task->pool->ready, &i);
+	return clp_lfqueue_push(i->process->pool->ready, &i);
 }
 
 static const struct luaL_Reg LuaExportFunctions[] = {

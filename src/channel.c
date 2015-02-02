@@ -35,7 +35,7 @@
 // @copyright Tiago Salmito - 2014
 
 #include "channel.h"
-#include "task.h"
+#include "process.h"
 #include "event.h"
 #include "scheduler.h"
 #include "marshal.h"
@@ -316,7 +316,7 @@ int clp_pushevent(lua_State *L) {
 			MUTEX_UNLOCK(&c->mutex);  		
 			lua_pushboolean(L,1);
 			return 1;
-		} //i am a regular task, yield to wait for a read
+		} //i am a regular process, yield to wait for a read
 		_DEBUG("Push: waiting %p\n",c);
 		ins->ev=ev;
 		ins->state=I_CHANNEL_WRITE;
@@ -404,7 +404,7 @@ static int channel_getevent(lua_State *L) {
 		return n;
 	}
 
-	//Check if there are still any task waiting for writes (in case the channel is unbuffered)
+	//Check if there are still any process waiting for writes (in case the channel is unbuffered)
 	if(clp_lfqueue_try_pop(c->write_queue,&i)) {
 		_DEBUG("get: still has writers, get its event %p\n",c);
 		_DEBUG("get: unlock %p\n",c);
