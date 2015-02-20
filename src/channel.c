@@ -512,7 +512,7 @@ void clp_pushchannel(lua_State * L,channel_t t) {
 
 int clp_channelnew(lua_State *L) {
 	channel_t t=malloc(sizeof(struct channel_s));
-	int size=luaL_optint(L, 1, -1);
+	int size=(int)luaL_optinteger(L, 1, -1);
 	int sync=1;
 	if(lua_type(L,2)==LUA_TBOOLEAN) {
 		sync=!lua_toboolean(L, 2);

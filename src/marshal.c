@@ -13,6 +13,10 @@
 
 #include "marshal.h"
 
+#if LUA_VERSION_NUM >= 503
+#define lua_dump(L, writer, data) lua_dump(L, writer, data, 0)
+#endif
+
 #if LUA_VERSION_NUM > 501
 #define lua_objlen lua_rawlen
 #define CLP_ENV_MARKER "__clp-env-5.2-mark"
@@ -86,7 +90,19 @@ static void mar_encode_value(lua_State *L, mar_Buffer *buf, int val, size_t *idx
 					  break;
 				  }
 		case LUA_TNUMBER: {
+					  #if LUA_VERSION_NUM >= 503
+					  union {
+						lua_Number n;
+						lua_Integer i;
+					  } num_val;
+					  if (lua_isinteger(L, -1)) {
+						num_val.i = lua_tointeger(L, -1);
+					  } else {
+						num_val.n = lua_tonumber(L, -1);
+					  }
+					  #else
 					  lua_Number num_val = lua_tonumber(L, -1);
+					  #endif
 					  buf_write(L, (void*)&num_val, MAR_I64, buf);
 					  break;
 				  }
