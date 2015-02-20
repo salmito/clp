@@ -110,8 +110,13 @@ static void mar_encode_value(lua_State *L, mar_Buffer *buf, int val, size_t *idx
 						 if(nowrap) 
 							 luaL_error(L, "light userdata not permitted");
 						 void * ptr_val = lua_touserdata(L, -1);
+						 #if __LP64__ || __LLP64__
 						 long long v = (long long)ptr_val;
 						 buf_write(L, (char*)&v, MAR_I64, buf);
+						 #else
+						 long long v = (long)ptr_val;
+						 buf_write(L, (char*)&v, MAR_I32, buf);
+						 #endif
 						 break;
 					 }
 		case LUA_TTABLE: {
@@ -354,7 +359,11 @@ static void mar_decode_value(lua_State *L, const char *buf, size_t len, const ch
 		case LUA_TLIGHTUSERDATA: {
 						 void * ptr=(void*)*(void**)*p;
 						 lua_pushlightuserdata(L, ptr);
+						 #if __LP64__ || __LLP64__
 						 mar_incr_ptr(MAR_I64);
+						 #else
+						 mar_incr_ptr(MAR_I32);
+						 #endif
 					 } break;
 		case LUA_TSTRING:
 					 mar_next_len(l, uint32_t);
