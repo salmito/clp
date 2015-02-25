@@ -66,7 +66,7 @@ static int pool_ptr(lua_State * L) {
 // @function add
 static int pool_addthread(lua_State * L) {
 	pool_t s=clp_topool(L, 1);
-	int size=luaL_optint(L, 2, 1);
+	int size=(int)luaL_optinteger(L, 2, 1);
 	CHANNEL_LOCK(s);
 	if(size<0) {
 		luaL_error(L,"argument must be positive or zero");

@@ -13,6 +13,10 @@
 
 #include "marshal.h"
 
+#if LUA_VERSION_NUM >= 503
+#define lua_dump(L, writer, data) lua_dump(L, writer, data, 0)
+#endif
+
 #if LUA_VERSION_NUM > 501
 #define lua_objlen lua_rawlen
 #define CLP_ENV_MARKER "__clp-env-5.2-mark"
@@ -86,7 +90,19 @@ static void mar_encode_value(lua_State *L, mar_Buffer *buf, int val, size_t *idx
 					  break;
 				  }
 		case LUA_TNUMBER: {
+					  #if LUA_VERSION_NUM >= 503
+					  union {
+						lua_Number n;
+						lua_Integer i;
+					  } num_val;
+//					  if (lua_isinteger(L, -1)) {
+//						num_val.i = lua_tointeger(L, -1);
+//					  } else {
+						num_val.n = lua_tonumber(L, -1);
+//					  }
+					  #else
 					  lua_Number num_val = lua_tonumber(L, -1);
+					  #endif
 					  buf_write(L, (void*)&num_val, MAR_I64, buf);
 					  break;
 				  }
@@ -94,8 +110,13 @@ static void mar_encode_value(lua_State *L, mar_Buffer *buf, int val, size_t *idx
 						 if(nowrap) 
 							 luaL_error(L, "light userdata not permitted");
 						 void * ptr_val = lua_touserdata(L, -1);
+						 #if __LP64__ || __LLP64__
 						 long long v = (long long)ptr_val;
 						 buf_write(L, (char*)&v, MAR_I64, buf);
+						 #else
+						 long long v = (long)ptr_val;
+						 buf_write(L, (char*)&v, MAR_I32, buf);
+						 #endif
 						 break;
 					 }
 		case LUA_TTABLE: {
@@ -338,7 +359,11 @@ static void mar_decode_value(lua_State *L, const char *buf, size_t len, const ch
 		case LUA_TLIGHTUSERDATA: {
 						 void * ptr=(void*)*(void**)*p;
 						 lua_pushlightuserdata(L, ptr);
+						 #if __LP64__ || __LLP64__
 						 mar_incr_ptr(MAR_I64);
+						 #else
+						 mar_incr_ptr(MAR_I32);
+						 #endif
 					 } break;
 		case LUA_TSTRING:
 					 mar_next_len(l, uint32_t);

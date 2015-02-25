@@ -199,7 +199,7 @@ static int process_tostring (lua_State * L) {
 
 static int process_destroyinstances (lua_State * L) {
 	process_t s = clp_toprocess (L, 1);
-	int n = luaL_optint(L, 2, 0);
+	int n = (int) luaL_optinteger(L, 2, 0);
 	if (n < 0)
 		luaL_error (L, "Argument must be positive");
 	if (n == 0) {
@@ -433,9 +433,9 @@ static int clp_newprocess (lua_State * L) {
 	else {
 		luaL_checktype (L, 1, LUA_TFUNCTION);
 		if(lua_type(L,2) == LUA_TNUMBER) { 
-			idle = luaL_optint (L, 2, 1);
+			idle = (int) luaL_optinteger (L, 2, 1);
 		} else if(lua_type(L,3) == LUA_TNUMBER) {
-			idle = luaL_optint (L, 3, 1);
+			idle = (int) luaL_optinteger (L, 3, 1);
 		} else {
 			idle=1;
 		}
