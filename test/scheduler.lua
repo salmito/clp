@@ -1,5 +1,5 @@
 local clp=require'clp'
-local s=require'clp.spawn'
+local s=require'clp.process'
 local e=require'clp.event'
 local sched=require'clp.scheduler'
 
@@ -32,8 +32,8 @@ local task1=clp.spawn(function(str)
 	end
 end,function() print(require'debug'.traceback()) end)
 
-task1:setpool(pool)
-print(assert(task1:pool()==pool,"incorrect pool") and "task1 pool OK "..tostring(pool))
+--task1:setpool(pool)
+--print(assert(task1:pool()==pool,"incorrect pool") and "task1 pool OK "..tostring(pool))
 local i=0
 task2:wrap(function(e,f) i=i+1 print(e,f,i) end)
 

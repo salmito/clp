@@ -38,7 +38,7 @@ fib_t:wrap(function(res,n)
 	local c1,c2=clp.channel(),clp.channel()
 
 	local _,_,r=i:size()
-	if r==0 then fib_t:add(1) end
+	if r==0 then fib_t:spawn(1) end
 	
 	fib_t(c1,n-1)
 	fib_t(c2,n-2)
@@ -46,7 +46,7 @@ fib_t:wrap(function(res,n)
 	res:put(c1:get()+c2:get())
 end)
 
-fib_t:add(n)
+fib_t:spawn(n)
 
 fib_t:pool():add(clp.cpus()-1)
 

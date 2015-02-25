@@ -95,11 +95,11 @@ static void mar_encode_value(lua_State *L, mar_Buffer *buf, int val, size_t *idx
 						lua_Number n;
 						lua_Integer i;
 					  } num_val;
-					  if (lua_isinteger(L, -1)) {
-						num_val.i = lua_tointeger(L, -1);
-					  } else {
+//					  if (lua_isinteger(L, -1)) {
+//						num_val.i = lua_tointeger(L, -1);
+//					  } else {
 						num_val.n = lua_tonumber(L, -1);
-					  }
+//					  }
 					  #else
 					  lua_Number num_val = lua_tonumber(L, -1);
 					  #endif
