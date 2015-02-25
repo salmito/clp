@@ -2,13 +2,16 @@ LUA_VER=5.1
 
 LUA_INCDIR=/usr/include/lua$(LUA_VER)
 
-INCFLAGS=-I$(LUA_INCDIR)
-CFLAGS=-fPIC $(INCFLAGS) -Wall $(EXTRA_FLAGS) -O2
-LIBEV_FLAGS=-levent -levent_pthreads
 #EXTRA_FLAGS=-DDEBUG -ggdb
+INCDIRFLAGS=-I$(LUA_INCDIR)
+CFLAGS=-fPIC -Wall -O2
+MODCFLAGS=$(CFLAGS) $(INCDIRFLAGS) $(EXTRA_FLAGS)
+LIBDIRFLAGS=
+LIBEV_FLAGS=-levent -levent_pthreads
 LIBTBB_FLAGS=-ltbb
 PTHREAD_FLAGS=-lpthread -lrt
-LDFLAGS=$(EXTRA_FLAGS) $(PTHREAD_FLAGS) $(LIBTBB_FLAGS) $(LIBEV_FLAGS)
+LDFLAGS=$(EXTRA_FLAGS) $(LIBDIRFLAGS) $(PTHREAD_FLAGS) $(LIBTBB_FLAGS) $(LIBEV_FLAGS)
+LIBFLAG=-shared
 
 LUA=lua
 
@@ -34,16 +37,16 @@ MODULE=clp$(_SO)
 all: $(MODULE)
 
 %.o: %.c $(HEADERS) Makefile
-	$(CC) -c -o $@ $< $(CFLAGS)
+	$(CC) -c -o $@ $< $(MODCFLAGS)
 
 p_queue.o: p_queue.cpp
-	$(G_PLUS_PLUS) -c -o $@ $< $(CFLAGS)
+	$(G_PLUS_PLUS) -c -o $@ $< $(MODCFLAGS)
 
 lf_queue.o: lf_queue.cpp
-	$(G_PLUS_PLUS) -c -o $@ $< $(CFLAGS)
+	$(G_PLUS_PLUS) -c -o $@ $< $(MODCFLAGS)
 	
 $(MODULE): $(OBJ)
-	$(G_PLUS_PLUS) -shared $^ -o $@ $(LDFLAGS)
+	$(G_PLUS_PLUS) $(LIBFLAG) $^ -o $@ $(LDFLAGS)
 
 clean:
 	rm -f *.o

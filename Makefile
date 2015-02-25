@@ -1,7 +1,9 @@
 LUA_VER=5.1
 
-LUA_LIBDIR=/usr/local/lib/lua/$(LUA_VER)
-LUA_SHAREDIR=/usr/local/share/lua/$(LUA_VER)
+PREFIX=/usr/local
+
+INSTALL_LIBDIR=$(PREFIX)/lib/lua/$(LUA_VER)
+INSTALL_SHAREDIR=$(PREFIX)/share/lua/$(LUA_VER)
 
 SRC_DIR=src/
 MODULE=clp
@@ -12,19 +14,21 @@ all:
 	cd $(SRC_DIR) && make LUA_VER=$(LUA_VER) all 
 
 install: all
-	mkdir -p $(LUA_LIBDIR)
-	install $(SRC_DIR)/$(BIN) $(LUA_LIBDIR)
+	mkdir -p $(INSTALL_LIBDIR)
+	install $(SRC_DIR)/$(BIN) $(INSTALL_LIBDIR)
 
 install-both: clean
 	cd $(SRC_DIR) && make LUA_VER=5.1 all && cd - && make LUA_VER=5.1 install
 	make clean
 	cd $(SRC_DIR) && make LUA_VER=5.2 all && cd - && make LUA_VER=5.2 install
+	make clean
+	cd $(SRC_DIR) && make LUA_VER=5.3 all && cd - && make LUA_VER=5.3 install
 
 uninstall:
-	rm -f $(LUA_LIBDIR)/$(BIN)
+	rm -f $(INSTALL_LIBDIR)/$(BIN)
 	
 uninstall-both:
-	make LUA_VER=5.1 uninstall && make LUA_VER=5.2 uninstall
+	make LUA_VER=5.1 uninstall && make LUA_VER=5.2 uninstall && make LUA_VER=5.3 uninstall
 
 %:
 	cd $(SRC_DIR) && make $@
@@ -46,6 +50,6 @@ else
 endif
 
 install-mod: 
-	mkdir -p $(LUA_SHAREDIR)/clp/
-	cp -r clp $(LUA_SHAREDIR)/clp/
+	mkdir -p $(INSTALL_SHAREDIR)/clp/
+	cp -r clp $(INSTALL_SHAREDIR)/clp/
 	
