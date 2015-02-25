@@ -1,0 +1,353 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>CLP API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>CLP</h1>
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+<li><a href="#Class_channel">Class channel </a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="$(kind=='Topics' and '' or 'nowrap'">
+  <li><strong>channel</strong></li>
+  <li><a href="../modules/clp.html">clp</a></li>
+  <li><a href="../modules/event.html">event</a></li>
+  <li><a href="../modules/pool.html">pool</a></li>
+  <li><a href="../modules/process.html">process</a></li>
+</ul>
+<h2>Topics</h2>
+<ul class="$(kind=='Topics' and '' or 'nowrap'">
+  <li><a href="../topics/README.md.html">README</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>channel</code></h1>
+<p>Channel submodule.</p>
+<p> This module adds the Channel type to the current Lua state.
+ Channels connect concurrent process. </p>
+
+<p> You can send values into channels from one <a href="../modules/process.html#">process</a> and receive
+ those values into another <a href="../modules/process.html#">process</a>.</p>
+
+<p> Send values to a channel using the <a href="../modules/channel.html#channel:put">channel:put</a> method.</p>
+
+<p> Receive values from a channel invoking the <a href="../modules/channel.html#channel:get">channel:get</a> method. </p>
+
+<p> Channels can be buffered or unbuffered.
+ By default channels are buffered and unbounded, meaning that <a href="../modules/channel.html#channel:put">channel:put</a>
+ returns immediatelly and never become full (be carefull with memory
+ exaustion), even when there is no corresponding  <a href="../modules/channel.html#channel:get">channel:get</a> call
+ waiting to receive the sent values.</p>
+
+<p> Buffered channels may accept a limited number of values without a
+ corresponding receiver for those values. This number may be specified
+ during the channel creation: for example, <code>channel.new(10)</code> will create a
+ channel that blocks only after the 10th put call without matching receivers.</p>
+
+<p> Unbuffered channels are created by the <a href="../modules/channel.html#new">channel.new</a> call.
+ Unbuffered channels will block the process in  <a href="../modules/channel.html#channel:put">channel:put</a> until
+ there is a corresponding <a href="../modules/channel.html#channel:get">channel:get</a> call ready to receive the sent
+ values and vice versa. Unbuffered channels act as a synchronization
+ barrier between two processes.</p>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#new">new ([size=-1[, async=false]])</a></td>
+	<td class="summary">Creates a new channel</td>
+	</tr>
+</table>
+<h2><a href="#Class_channel">Class channel </a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#channel:size">channel:size ()</a></td>
+	<td class="summary">Get the current and maximum size of the buffer.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#channel:setsize">channel:setsize (size)</a></td>
+	<td class="summary">Set the maximum size of the buffer.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#channel:close">channel:close ()</a></td>
+	<td class="summary">Close a channel.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#channel:put">channel:put (...)</a></td>
+	<td class="summary">Put values into the channel.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#channel:get">channel:get ()</a></td>
+	<td class="summary">Get values from the channel.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "new"></a>
+    <strong>new ([size=-1[, async=false]])</strong>
+    </dt>
+    <dd>
+    Creates a new channel
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">size</span>
+            <span class="types"><span class="type">int</span></span>
+         the maximum size of the buffer.
+ If the value is lower than  <code>0</code> then the channel will be unbounded.
+ If the value is <code>0</code> then the channel will be unbuffered.
+ If the value is greater than  <code>0</code> then the channel buffer will increase
+ up to the maximum <a href="../modules/channel.html#channel:size">size</a>.
+         (<em>default</em> -1)
+        </li>
+        <li><span class="parameter">async</span>
+            <span class="types"><span class="type">bool</span></span>
+         if set to <code>true</code> then the new channel will be
+ asynchronous (i.e. fails when full/empty). if <code>false</code> then it will be
+ synchronous (i.e. blocks when full/empty).
+         (<em>default</em> false)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/channel.html#channel">channel</a></span>
+        the new channel
+    </ol>
+
+
+
+
+</dd>
+</dl>
+    <h2 class="section-header has-description"><a name="Class_channel"></a>Class channel </h2>
+
+          <div class="section-description">
+          Channel type. </p>
+
+<p> Any function in this section belongs to <a href="../modules/channel.html#">channel</a> type methods.
+          </div>
+    <dl class="function">
+    <dt>
+    <a name = "channel:size"></a>
+    <strong>channel:size ()</strong>
+    </dt>
+    <dd>
+    Get the current and maximum size of the buffer.
+ It also returns the current number of pending readers
+ and writers wating on the channel.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><span class="type">int</span></span>
+        the current buffer size</li>
+        <li>
+           <span class="types"><span class="type">int</span></span>
+        the maximum buffer size</li>
+        <li>
+           <span class="types"><span class="type">int</span></span>
+        the current number of pending readers</li>
+        <li>
+           <span class="types"><span class="type">int</span></span>
+        the current number of pending writers</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "channel:setsize"></a>
+    <strong>channel:setsize (size)</strong>
+    </dt>
+    <dd>
+    Set the maximum size of the buffer.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">size</span>
+            <span class="types"><span class="type">int</span></span>
+         the new maximum size
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "channel:close"></a>
+    <strong>channel:close ()</strong>
+    </dt>
+    <dd>
+    Close a channel.  </p>
+
+<p> When closed, any pending readers and writers are awaken and an error
+ is thrown in their pendig operation.</p>
+
+<p> Current stored values remain on the buffer until the channel is
+ collected or are read by other processes.</p>
+
+<p> Any subsequent <a href="../modules/channel.html#channel:get">channel:get</a> operation with an empty buffer fails
+ with an error.</p>
+
+<p> Any subsequent <a href="../modules/channel.html#channel:put">channel:put</a> operation fails with <code>nil, &apos;closed&apos;</code>.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "channel:put"></a>
+    <strong>channel:put (...)</strong>
+    </dt>
+    <dd>
+    Put values into the channel. </p>
+
+<p> This operation will block the current process if the channel is
+ synchronous and it is full until there is a corresponding get.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">...</span>
+         The values to send
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">bool</span></span>
+        true if the value was sent
+    </ol>
+     <h3>Or</h3>
+    <ol>
+        <li>
+           <span class="types"><span class="type">nil</span></span>
+
+
+</li>
+        <li>
+           <span class="types"><a class="type" href="http://www.lua.org/manual/5.2/manual.html#6.4">string</a></span>
+        <code>&quot;Channel is closed&quot;</code> if the channel is closed</li>
+    </ol>
+     <h3>Or</h3>
+    <ol>
+        <li>
+           <span class="types"><span class="type">nil</span></span>
+
+
+</li>
+        <li>
+           <span class="types"><a class="type" href="http://www.lua.org/manual/5.2/manual.html#6.4">string</a></span>
+         <code>&quot;Channel is full&quot;</code> if the channel is asynchronous and
+ it's full</li>
+    </ol>
+
+    <h3>Raises:</h3>
+     <code>&quot;Channel is closed&quot;</code> if the channel was closed while
+ waiting for a get.
+
+
+
+</dd>
+    <dt>
+    <a name = "channel:get"></a>
+    <strong>channel:get ()</strong>
+    </dt>
+    <dd>
+    Get values from the channel. </p>
+
+<p> This operation will block the current process if the channel is
+ synchronous and it is empty until there is a corresponding put.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        <code>...</code> The next values in the buffer
+    </ol>
+     <h3>Or</h3>
+    <ol>
+        <li>
+           <span class="types"><span class="type">nil</span></span>
+
+
+</li>
+        <li>
+           <span class="types"><a class="type" href="http://www.lua.org/manual/5.2/manual.html#6.4">string</a></span>
+         <code>&quot;Channel is empty&quot;</code> if the channel is asynchronous and
+ it's empty</li>
+    </ol>
+
+    <h3>Raises:</h3>
+     <code>&quot;Channel is closed&quot;</code> if the channel is closed or was closed while
+ waiting for a put.
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.3</a></i>
+<i style="float:right;">Last updated 2015-01-26 10:43:29 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

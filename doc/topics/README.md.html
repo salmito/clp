@@ -1,0 +1,162 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>CLP API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>CLP</h1>
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Compiling_and_Installing">Compiling and Installing </a></li>
+<li><a href="#Testing_installation">Testing installation </a></li>
+<li><a href="#Reporting_BUGS">Reporting BUGS </a></li>
+<li><a href="#Copyright_notice">Copyright notice </a></li>
+</ul>
+
+
+<h2>Topics</h2>
+<ul class="$(kind=='Topics' and '' or 'nowrap'">
+  <li><strong>README</strong></li>
+</ul>
+<h2>Modules</h2>
+<ul class="$(kind=='Topics' and '' or 'nowrap'">
+  <li><a href="../modules/channel.html">channel</a></li>
+  <li><a href="../modules/clp.html">clp</a></li>
+  <li><a href="../modules/event.html">event</a></li>
+  <li><a href="../modules/pool.html">pool</a></li>
+  <li><a href="../modules/process.html">process</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+
+<h1>Communicating Lua Processes</h1>
+<p>CLP is a Lua library for bulding lightweight parallel processes based on the concepts of CSP (Communicating Sequential Processes).</p>
+
+<p><a name="Compiling_and_Installing"></a></p>
+<h2>Compiling and Installing</h2>
+<p>CLP is compatible with almost every Lua interpreter: it has been tested with PUC-Rio's Lua version 5.1, 5.2 and 5.3 alpha.</p>
+
+<p>It was also tested with other  Lua interpreters such as Luajit, love2d and torch.</p>
+
+<p>Currently, CLP requires Threading Building Blocks (TBB) and Libevent libraries to work properly.</p>
+
+<p>For more information on the TBB library: http://threadingbuildingblocks.org/</p>
+
+<p>For more information on the Libevent library: http://libevent.org/</p>
+
+<p>If you want to try it out on windows, just clone the https://github.com/Salmito/ZeroBraneStudio repository fork with the CLP binary preinstalled.</p>
+
+<p>To install all dependencies for Lua 5.1 on a Debian like linux (Ubuntu, mint, etc) do: </p>
+<pre><code> sudo apt-get install libtbb-dev libevent-dev lua5.1-dev lua5.1
+</code></pre>
+
+
+<p>Equivalently, to install dependencies for Lua 5.2 on a Debian like linux (Ubuntu, mint, etc) do: </p>
+<pre><code> sudo apt-get install libtbb-dev libevent-dev lua5.2-dev lua5.2
+</code></pre>
+
+
+<p>To build and install CLP for Lua 5.1:</p>
+<pre><code>    $ make
+    $ sudo make install
+</code></pre>
+
+
+<p>To build and install CLP for Lua 5.2:</p>
+<pre><code>    $ make LUA_VER=5.2
+    $ sudo make install LUA_VER=5.2
+</code></pre>
+
+
+<p>To uninstall CLP on Lua 5.1:</p>
+<pre><code>    $ sudo make uninstall
+</code></pre>
+
+
+<p>To uninstall CLP on Lua 5.2:</p>
+<pre><code>    $ sudo make uninstall LUA_VER=5.2
+</code></pre>
+
+
+<p><a name="Testing_installation"></a></p>
+<h2>Testing installation</h2>
+<p>To test if the installation was successful type this command:</p>
+
+<pre><code> $ lua -l clp
+</code></pre>
+
+
+<p>You should get the lua prompt if clp was installed properly or the error message "module 'clp' not found"  if it cannot be loaded (check if it was installed on a wrong location).</p>
+
+<p>Then, run the scripts in the test directory to validate the installation.</p>
+
+<p>That's it.</p>
+
+<p><a name="Reporting_BUGS"></a></p>
+<h2>Reporting BUGS</h2>
+<p>If you find bugs, please report them on GitHub: https://github.com/Salmito/clp/issues</p>
+
+<p>Or e-mail me: Tiago Salmito - tiago <em>[at]</em> salmito <em>[dot]</em> com</p>
+
+<p><a name="Copyright_notice"></a></p>
+<h2>Copyright notice</h2>
+<p>CLP is published under the same MIT license as Lua 5.1.</p>
+
+<p>Copyright (C) 2014 Tiago Salmito</p>
+
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:</p>
+
+<p>The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.</p>
+
+<p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.</p>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.3</a></i>
+<i style="float:right;">Last updated 2015-01-26 10:43:29 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

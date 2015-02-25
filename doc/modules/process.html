@@ -1,0 +1,449 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>CLP API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>CLP</h1>
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+<li><a href="#Class_process">Class process </a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="$(kind=='Topics' and '' or 'nowrap'">
+  <li><a href="../modules/channel.html">channel</a></li>
+  <li><a href="../modules/clp.html">clp</a></li>
+  <li><a href="../modules/event.html">event</a></li>
+  <li><a href="../modules/pool.html">pool</a></li>
+  <li><strong>process</strong></li>
+</ul>
+<h2>Topics</h2>
+<ul class="$(kind=='Topics' and '' or 'nowrap'">
+  <li><a href="../topics/README.md.html">README</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>process</code></h1>
+<p>Process submodule.</p>
+<p> A process is a lightweight thread of execution with its own
+ independent state.</p>
+    <h3>Info:</h3>
+    <ul>
+        <li><strong>Copyright</strong>: Tiago Salmito - 2014</li>
+        <li><strong>License</strong>: MIT</li>
+        <li><strong>Author</strong>: Tiago Salmito</li>
+    </ul>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#new">new ([f[, e[, n=1]]])</a></td>
+	<td class="summary">Creates a new process.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#isprocess">isprocess (p)</a></td>
+	<td class="summary">Tests whether the userdata is a process</td>
+	</tr>
+</table>
+<h2><a href="#Class_process">Class process </a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#process:input">process:input ()</a></td>
+	<td class="summary">get the input channel of the process.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#process:setinput">process:setinput (c)</a></td>
+	<td class="summary">Changes the input channel of the process.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#process:size">process:size ()</a></td>
+	<td class="summary">Get the number of spawned processes.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#process:env">process:env ()</a></td>
+	<td class="summary">Get the environment function of a process</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#process:wrap">process:wrap ([f[, e[, n=1]]])</a></td>
+	<td class="summary">Wraps an empty process with an environment and error function.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#process:spawn">process:spawn (n)</a></td>
+	<td class="summary">Create a new process from an existing one.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#process:pool">process:pool ()</a></td>
+	<td class="summary">Get the current pool associated to the process</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#process:pool">process:pool (the)</a></td>
+	<td class="summary">Associate a pool to the process</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#process:parent">process:parent ()</a></td>
+	<td class="summary">Get the parent of the current process</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "new"></a>
+    <strong>new ([f[, e[, n=1]]])</strong>
+    </dt>
+    <dd>
+    Creates a new process. </p>
+
+<p> If called without parameters, creates a new empty process
+ without environment. It can be set later with
+ the <a href="../modules/process.html#process:wrap">process:wrap</a> function.</p>
+
+<p> If <code>f</code> is a function then it will be used as the new process environment.
+ Any upvalues will be copied to the state of the new process.</p>
+
+<p> If <code>e</code> is a function then it will be used as the error
+ function of the new process. It will be called whenever the process
+ raise a error. The process is destroyed after it returns.</p>
+
+<p> All spawned processes share the same input channel.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">f</span>
+            <span class="types"><span class="type">function</span></span>
+         environment of the process.
+         (<em>optional</em>)
+        </li>
+        <li><span class="parameter">e</span>
+            <span class="types"><span class="type">function</span></span>
+         error function of the process.
+         (<em>optional</em>)
+        </li>
+        <li><span class="parameter">n</span>
+            <span class="types"><span class="type">number</span></span>
+         number of processes to create.
+         (<em>default</em> 1)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        the new process
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "isprocess"></a>
+    <strong>isprocess (p)</strong>
+    </dt>
+    <dd>
+    Tests whether the userdata is a process
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">p</span>
+            <span class="types"><a class="type" href="../modules/process.html#process">process</a></span>
+         value to be tested
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        true if it has the process type
+    </ol>
+
+
+
+
+</dd>
+</dl>
+    <h2 class="section-header has-description"><a name="Class_process"></a>Class process </h2>
+
+          <div class="section-description">
+          Our class.  Any function or table in this section belongs to <a href="../modules/process.html#">process</a>
+          </div>
+    <dl class="function">
+    <dt>
+    <a name = "process:input"></a>
+    <strong>process:input ()</strong>
+    </dt>
+    <dd>
+    get the input channel of the process.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        the input channel
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "process:setinput"></a>
+    <strong>process:setinput (c)</strong>
+    </dt>
+    <dd>
+    Changes the input channel of the process.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">c</span>
+            <span class="types"><span class="type">channel</span></span>
+         the new input channel
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "process:size"></a>
+    <strong>process:size ()</strong>
+    </dt>
+    <dd>
+    Get the number of spawned processes.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        the number of process instances
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "process:env"></a>
+    <strong>process:env ()</strong>
+    </dt>
+    <dd>
+    Get the environment function of a process
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">function</span></span>
+        the environment function
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "process:wrap"></a>
+    <strong>process:wrap ([f[, e[, n=1]]])</strong>
+    </dt>
+    <dd>
+    Wraps an empty process with an environment and error function. </p>
+
+<p> A process can be wrapped only once.</p>
+
+<p> Has the same parameters of the <a href="../modules/process.html#new">new</a> function.
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">f</span>
+            <span class="types"><span class="type">function</span></span>
+         environment of the process.
+         (<em>optional</em>)
+        </li>
+        <li><span class="parameter">e</span>
+            <span class="types"><span class="type">function</span></span>
+         error function of the process.
+         (<em>optional</em>)
+        </li>
+        <li><span class="parameter">n</span>
+            <span class="types"><span class="type">number</span></span>
+         number of processes to create.
+         (<em>default</em> 1)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/process.html#process">process</a></span>
+        itself
+    </ol>
+
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/process.html#new">new</a>
+    </ul>
+
+
+</dd>
+    <dt>
+    <a name = "process:spawn"></a>
+    <strong>process:spawn (n)</strong>
+    </dt>
+    <dd>
+    Create a new process from an existing one. </p>
+
+<p> All spawned processes share the same input channel.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">n</span>
+            <span class="types"><span class="type">int</span></span>
+         number of new processes
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/process.html#process">process</a></span>
+        itself
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "process:pool"></a>
+    <strong>process:pool ()</strong>
+    </dt>
+    <dd>
+    Get the current pool associated to the process
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/process.html#process:pool">pool</a></span>
+        the pool of the process
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "process:pool"></a>
+    <strong>process:pool (the)</strong>
+    </dt>
+    <dd>
+    Associate a pool to the process
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">the</span>
+            <span class="types"><a class="type" href="../modules/process.html#process:pool">pool</a></span>
+         pool to be associated
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/process.html#process">process</a></span>
+        itself
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "process:parent"></a>
+    <strong>process:parent ()</strong>
+    </dt>
+    <dd>
+    Get the parent of the current process
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/process.html#process">process</a></span>
+        the parent process
+    </ol>
+     <h3>Or</h3>
+    <ol>
+
+           <span class="types"><span class="type">nil</span></span>
+        if the process has no parent.
+    </ol>
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.3</a></i>
+<i style="float:right;">Last updated 2015-01-26 10:43:29 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

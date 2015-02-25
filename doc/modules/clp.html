@@ -1,0 +1,279 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>CLP API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>CLP</h1>
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+<li><a href="#Fields">Fields</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="$(kind=='Topics' and '' or 'nowrap'">
+  <li><a href="../modules/channel.html">channel</a></li>
+  <li><strong>clp</strong></li>
+  <li><a href="../modules/event.html">event</a></li>
+  <li><a href="../modules/pool.html">pool</a></li>
+  <li><a href="../modules/process.html">process</a></li>
+</ul>
+<h2>Topics</h2>
+<ul class="$(kind=='Topics' and '' or 'nowrap'">
+  <li><a href="../topics/README.md.html">README</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>clp</code></h1>
+<p>The main CLP module.</p>
+<p> CLP is a Lua library for bulding lightweight parallel processes
+ based on the concepts of Communicating Sequential Processes.</p>
+    <h3>Info:</h3>
+    <ul>
+        <li><strong>Copyright</strong>: Tiago Salmito - 2014</li>
+        <li><strong>License</strong>: MIT</li>
+        <li><strong>Author</strong>: Tiago Salmito</li>
+    </ul>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#version">version ()</a></td>
+	<td class="summary">Get the CLP library version string.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#now">now ()</a></td>
+	<td class="summary">Get the current time sice epoch with a non-specified precision.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#self">self ()</a></td>
+	<td class="summary">Get the current process</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#cpus">cpus ()</a></td>
+	<td class="summary">Get the number of available processors</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#channel">channel ()</a></td>
+	<td class="summary">Creates a new channel.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#spawn">spawn ()</a></td>
+	<td class="summary">Creates a new process.</td>
+	</tr>
+</table>
+<h2><a href="#Fields">Fields</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#pool">pool</a></td>
+	<td class="summary">This field holds a reference to the default pool of the process.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "version"></a>
+    <strong>version ()</strong>
+    </dt>
+    <dd>
+    Get the CLP library version string.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="http://www.lua.org/manual/5.2/manual.html#6.4">string</a></span>
+        the current version
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "now"></a>
+    <strong>now ()</strong>
+    </dt>
+    <dd>
+    Get the current time sice epoch with a non-specified precision.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">number</span></span>
+        the current time since epoch
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "self"></a>
+    <strong>self ()</strong>
+    </dt>
+    <dd>
+    Get the current process
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        <a href="../modules/process.html#">process</a> the current running process
+    </ol>
+     <h3>Or</h3>
+    <ol>
+
+        nil if it was called from outside of a process
+    </ol>
+
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/process.html#">process</a>
+    </ul>
+
+
+</dd>
+    <dt>
+    <a name = "cpus"></a>
+    <strong>cpus ()</strong>
+    </dt>
+    <dd>
+    Get the number of available processors
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">int</span></span>
+        the number of processors
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "channel"></a>
+    <strong>channel ()</strong>
+    </dt>
+    <dd>
+    Creates a new channel. </p>
+
+<p> This function is an alias to the <a href="../modules/channel.html#new">channel.new</a> funcion.
+
+
+
+
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/channel.html#new">channel.new</a>
+    </ul>
+
+
+</dd>
+    <dt>
+    <a name = "spawn"></a>
+    <strong>spawn ()</strong>
+    </dt>
+    <dd>
+    Creates a new process. </p>
+
+<p> This function is an alias to the <a href="../modules/process.html#new">process.new</a> funcion.
+
+
+
+
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/process.html#new">process.new</a>
+    </ul>
+
+
+</dd>
+</dl>
+    <h2 class="section-header "><a name="Fields"></a>Fields</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "pool"></a>
+    <strong>pool</strong>
+    </dt>
+    <dd>
+    This field holds a reference to the default pool of the process. </p>
+
+<p> Every <a href="../modules/process.html#">process</a> belongs this pool upon creation.
+
+
+    <ul>
+        <li><span class="parameter">pool</span>
+         (<a href="../modules/pool.html#">pool</a>) The default pool.
+        </li>
+    </ul>
+
+
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/pool.html#">pool</a>
+    </ul>
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.3</a></i>
+<i style="float:right;">Last updated 2015-01-26 10:43:29 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>
