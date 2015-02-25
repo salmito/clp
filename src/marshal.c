@@ -15,6 +15,9 @@
 
 #if LUA_VERSION_NUM >= 503
 #define lua_dump(L, writer, data) lua_dump(L, writer, data, 0)
+
+/* Variant tags for numbers (from lobject.h) */
+#define LUA_TNUMINT     (LUA_TNUMBER | (1 << 4))  /* integer numbers */
 #endif
 
 #if LUA_VERSION_NUM > 501
@@ -76,50 +79,57 @@ static void mar_encode_value(lua_State *L, mar_Buffer *buf, int val, size_t *idx
 	int val_type = lua_type(L, val);
 	lua_pushvalue(L, val);
 
-	buf_write(L, (void*)&val_type, MAR_CHR, buf);
 	switch (val_type) {
 		case LUA_TBOOLEAN: {
+					   buf_write(L, (void*)&val_type, MAR_CHR, buf);
 					   int int_val = lua_toboolean(L, -1);
 					   buf_write(L, (void*)&int_val, MAR_CHR, buf);
 					   break;
 				   }
 		case LUA_TSTRING: {
+					  buf_write(L, (void*)&val_type, MAR_CHR, buf);
 					  const char *str_val = lua_tolstring(L, -1, &l);
 					  buf_write(L, (void*)&l, MAR_I32, buf);
 					  buf_write(L, str_val, l, buf);
 					  break;
 				  }
 		case LUA_TNUMBER: {
-					  #if LUA_VERSION_NUM >= 503
+#if LUA_VERSION_NUM >= 503
 					  union {
-						lua_Number n;
-						lua_Integer i;
+						  lua_Number n;
+						  lua_Integer i;
 					  } num_val;
-//					  if (lua_isinteger(L, -1)) {
-//						num_val.i = lua_tointeger(L, -1);
-//					  } else {
-						num_val.n = lua_tonumber(L, -1);
-//					  }
-					  #else
+					  if (lua_isinteger(L, -1)) {
+						  val_type=LUA_TNUMINT;
+						  buf_write(L, (void*)&val_type, MAR_CHR, buf);
+						  num_val.i = lua_tointeger(L, -1);
+					  } else {
+						  buf_write(L, (void*)&val_type, MAR_CHR, buf);
+						  num_val.n = lua_tonumber(L, -1);
+					  }
+#else
+					  buf_write(L, (void*)&val_type, MAR_CHR, buf);
 					  lua_Number num_val = lua_tonumber(L, -1);
-					  #endif
+#endif
 					  buf_write(L, (void*)&num_val, MAR_I64, buf);
 					  break;
 				  }
 		case LUA_TLIGHTUSERDATA: {
+						 buf_write(L, (void*)&val_type, MAR_CHR, buf);
 						 if(nowrap) 
 							 luaL_error(L, "light userdata not permitted");
 						 void * ptr_val = lua_touserdata(L, -1);
-						 #if __LP64__ || __LLP64__
+#if __LP64__ || __LLP64__
 						 long long v = (long long)ptr_val;
 						 buf_write(L, (char*)&v, MAR_I64, buf);
-						 #else
+#else
 						 long long v = (long)ptr_val;
 						 buf_write(L, (char*)&v, MAR_I32, buf);
-						 #endif
+#endif
 						 break;
 					 }
 		case LUA_TTABLE: {
+					 buf_write(L, (void*)&val_type, MAR_CHR, buf);
 					 int tag, ref;
 					 lua_pushvalue(L, -1);
 					 lua_rawget(L, SEEN_IDX);
@@ -178,6 +188,7 @@ static void mar_encode_value(lua_State *L, mar_Buffer *buf, int val, size_t *idx
 					 break;
 				 }
 		case LUA_TFUNCTION: {
+					    buf_write(L, (void*)&val_type, MAR_CHR, buf);
 					    int tag, ref;
 					    lua_pushvalue(L, -1);
 					    lua_rawget(L, SEEN_IDX);
@@ -250,6 +261,7 @@ static void mar_encode_value(lua_State *L, mar_Buffer *buf, int val, size_t *idx
 					    break;
 				    }
 		case LUA_TUSERDATA: {
+					    buf_write(L, (void*)&val_type, MAR_CHR, buf);
 					    int tag, ref;
 					    lua_pushvalue(L, -1);
 					    lua_rawget(L, SEEN_IDX);
@@ -319,9 +331,11 @@ static void mar_encode_value(lua_State *L, mar_Buffer *buf, int val, size_t *idx
 					    }
 					    break;
 				    }
-		case LUA_TNIL: break;
+		case LUA_TNIL:
+				    buf_write(L, (void*)&val_type, MAR_CHR, buf);
+				    break;
 		default:
-			       luaL_error(L, "invalid value type (%s)", lua_typename(L, val_type));
+				    luaL_error(L, "invalid value type (%s)", lua_typename(L, val_type));
 	}
 	lua_pop(L, 1);
 }
@@ -352,6 +366,12 @@ static void mar_decode_value(lua_State *L, const char *buf, size_t len, const ch
 			lua_pushboolean(L, *(char*)*p);
 			mar_incr_ptr(MAR_CHR);
 			break;
+#if LUA_VERSION_NUM >= 503
+		case LUA_TNUMINT:
+			lua_pushinteger(L, *(lua_Integer*)*p);
+			mar_incr_ptr(MAR_I64);
+			break;
+#endif
 		case LUA_TNUMBER:
 			lua_pushnumber(L, *(lua_Number*)*p);
 			mar_incr_ptr(MAR_I64);
@@ -359,11 +379,11 @@ static void mar_decode_value(lua_State *L, const char *buf, size_t len, const ch
 		case LUA_TLIGHTUSERDATA: {
 						 void * ptr=(void*)*(void**)*p;
 						 lua_pushlightuserdata(L, ptr);
-						 #if __LP64__ || __LLP64__
+#if __LP64__ || __LLP64__
 						 mar_incr_ptr(MAR_I64);
-						 #else
+#else
 						 mar_incr_ptr(MAR_I32);
-						 #endif
+#endif
 					 } break;
 		case LUA_TSTRING:
 					 mar_next_len(l, uint32_t);
