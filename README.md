@@ -15,6 +15,7 @@ For more information on the Libevent library: http://libevent.org/
 If you want to try it out on windows, just clone the https://github.com/Salmito/ZeroBraneStudio repository fork with the CLP binary preinstalled.
 
 To install all dependencies for Lua 5.1 on a Debian like linux (Ubuntu, mint, etc) do: 
+
 ```
 sudo apt-get install libtbb-dev libevent-dev lua5.1-dev lua5.1
 ```
